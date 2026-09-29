@@ -1,7 +1,7 @@
 # GraphDSL node synthesis and original Parsel (1×1)
 
 The current matrix is experiments/parsel_graphdsl_1x1.json. Its output directory is
-outputs/qwen7b-parsel-graphdsl-nodes-v2; do not mix it with results from the old custom adapter.
+outputs/qwen7b-parsel-graphdsl-nodes-v3; do not mix it with results from older prompt versions.
 
 ## What runs
 
@@ -20,6 +20,11 @@ node's implementation. The compiler wires data ports in topological order within
 Loop and Branch implementations call already-implemented region callbacks only when needed.
 Imports are local to node functions, avoiding collisions between independently generated modules.
 Source functions retain stable node-ID comments and node results are recorded individually.
+
+Both IR translators receive one hand-authored synthetic, interface-matched format demonstration by
+default. GraphDSL uses the auditable graph catalog and Parsel uses
+`demonstrations/parsel_catalog.json`. These demonstrations contain no benchmark solution. Set the
+corresponding demonstration count to zero only for an explicitly labeled zero-shot ablation.
 
 ## Original Parsel fidelity
 

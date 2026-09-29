@@ -56,6 +56,7 @@ def prepare(config: dict[str, Any], dry_run: bool) -> None:
                 sys.executable, str(ROOT / "scripts" / "build_parsel_eval.py"),
                 "--input-dir", str(input_dir), "--output", str(requests),
                 "--benchmarks", *benchmarks,
+                "--num-demonstrations", str(condition.get("parsel_demonstrations", 1)),
             ]
         else:
             command = [

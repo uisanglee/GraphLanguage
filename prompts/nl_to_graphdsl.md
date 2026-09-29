@@ -57,3 +57,21 @@ output bindings for its regions. Specify config.region_bindings as {region_id: {
 Loop invariant inputs use config.bindings {RegionInput_endpoint: owner_input_port} in addition to
 iteration and carried bindings. Every region input must be covered. Try and Context must identify
 an owned body_region.
+
+Prefer a root-only `Input -> Compute/Call -> Output` graph for a simple function. Introduce Branch,
+Loop, Try, Context, or a nested region only when that control structure is essential to the stated
+algorithm. Do not create RegionInput or RegionOutput nodes in the root region.
+
+Before emitting JSON, silently verify all of the following:
+- there is exactly one `root` region with `owner: null`, and every node names an existing region;
+- every node ID is unique, and every input/output port ID is unique within its node;
+- every edge connects an existing output port to an existing input port in the same region;
+- connected port types are identical unless one side is `Any`;
+- every required input has exactly one incoming edge unless its cardinality is `many` or it has a
+  default;
+- each function parameter has one root Input node whose `config.parameter` is that exact name;
+- the root Output uses `config.mode: "return"` for functions or `"stdout"` for stdio;
+- no edge crosses a region boundary; controller bindings are the only cross-region mechanism;
+- every owned region and every controller binding satisfies the complete Loop/Branch contract
+  above; if this is unnecessary, replace the controller with a Compute node;
+- the result contains only the JSON object and no Markdown fence.

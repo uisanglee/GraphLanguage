@@ -18,6 +18,9 @@ from validate_graph import validate  # noqa: E402
 from export_predictions import export_functional  # noqa: E402
 from build_qwen_eval import is_official_evaluation_task, safe_task  # noqa: E402
 from run_qwen_pipeline import with_high_level_plan  # noqa: E402
+from build_parsel_eval import load_demonstrations, demonstration_messages  # noqa: E402
+from official_results import inference_totals  # noqa: E402
+from run_safe_functional_eval import evaluate_one  # noqa: E402
 
 
 class PipelineComponentsTest(unittest.TestCase):
@@ -55,6 +58,9 @@ class PipelineComponentsTest(unittest.TestCase):
     def test_artifact_gate_rejects_invalid_python(self) -> None:
         self.assertTrue(validate_artifact("def broken(:\n", "function"))
         self.assertEqual(validate_artifact("def ok():\n    return 1\n", "function"), [])
+        self.assertEqual(
+            validate_artifact("```python\ndef ok():\n    return 1\n```", "function"), []
+        )
 
     def test_humaneval_export_adds_official_check_invocation(self) -> None:
         task = {
@@ -63,10 +69,40 @@ class PipelineComponentsTest(unittest.TestCase):
             "starter_code": "",
             "reference": {"test": "def check(fn):\n    assert fn() == 1"},
         }
-        result = {"generated_artifact": "def candidate():\n    return 1"}
+        result = {
+            "generated_artifact": "def candidate():\n    return 1",
+            "artifact_valid": True,
+        }
         jobs = export_functional({task["id"]: task}, {task["id"]: result}, "humaneval")
         self.assertEqual(jobs[0]["invocation"], "check(candidate)")
+        self.assertTrue(jobs[0]["generation_valid"])
         self.assertNotIn("reference", jobs[0])
+
+    def test_invalid_generation_is_not_executed(self) -> None:
+        task = {
+            "id": "humaneval:HumanEval/0",
+            "entrypoint": "candidate",
+            "starter_code": "",
+            "reference": {"test": "def check(fn):\n    assert fn() == 1"},
+        }
+        result = {"artifact_valid": False, "artifact_errors": ["missing artifact"]}
+        job = export_functional({task["id"]: task}, {task["id"]: result}, "humaneval")[0]
+        evaluated = evaluate_one(job, "unused-image", 1, 128)
+        self.assertEqual(evaluated["status"], "invalid_generation")
+        self.assertFalse(evaluated["passed"])
+
+    def test_direct_inference_telemetry_is_counted(self) -> None:
+        self.assertEqual(
+            inference_totals({"inference": {"usage": {"total_tokens": 17}, "elapsed_seconds": 2.5}}),
+            (17, 2.5),
+        )
+
+    def test_parsel_demonstration_is_format_only(self) -> None:
+        catalog = load_demonstrations(ROOT / "demonstrations" / "parsel_catalog.json")
+        messages, ids = demonstration_messages(catalog, "function", "humaneval", 1)
+        self.assertEqual(ids, ["parsel-function-contract"])
+        self.assertNotIn("def ", messages[-1]["content"])
+        self.assertIn("absolute_distance(a, b):", messages[-1]["content"])
 
     def test_mbpp_official_split(self) -> None:
         def record(task_id: int) -> dict:

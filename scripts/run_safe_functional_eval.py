@@ -48,6 +48,13 @@ def build_image(image: str, root: Path) -> None:
 def evaluate_one(
     job: dict[str, Any], image: str, timeout: int, memory_mb: int
 ) -> dict[str, Any]:
+    if not job.get("generation_valid", False):
+        return {
+            "task_id": job["task_id"],
+            "status": "invalid_generation",
+            "passed": False,
+            "generation_errors": job.get("generation_errors", []),
+        }
     job = dict(job)
     job["timeout_seconds"] = timeout
     job["memory_bytes"] = max(128, memory_mb - 64) * 1024 * 1024
@@ -138,7 +145,7 @@ def main() -> None:
     identity_path.write_text(json.dumps(identity))
     completed_ids = {
         row["task_id"] for row in iter_jsonl(args.output)
-        if row.get('status') in {'passed','failed','timeout'}
+        if row.get('status') in {'passed','failed','timeout','invalid_generation'}
     } if args.output.exists() else set()
     pending = [job for job in jobs if job["task_id"] not in completed_ids]
     with args.output.open("a", encoding="utf-8") as output:

@@ -44,5 +44,8 @@ def inference_totals(row):
                 for child in value.values(): visit(child)
         elif isinstance(value, list):
             for child in value: visit(child)
-    visit({k:v for k,v in row.items() if k.endswith('_inference') or k == 'node_results'})
+    visit({
+        k: v for k, v in row.items()
+        if k.endswith('_inference') or k in {'inference', 'node_results'}
+    })
     return tokens, elapsed

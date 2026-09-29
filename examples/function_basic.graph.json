@@ -1,0 +1,64 @@
+{
+  "graphdsl_version": "0.1.0",
+  "id": "example:absolute-distance",
+  "title": "Absolute distance",
+  "description": "Return the non-negative absolute difference between two numbers.",
+  "target": {"language": "python", "python_version": ">=3.10"},
+  "interface": {
+    "mode": "function",
+    "entrypoint": "absolute_distance",
+    "signature": "(a: float, b: float) -> float"
+  },
+  "regions": [{"id": "root", "owner": null, "role": "root"}],
+  "nodes": [
+    {
+      "id": "a",
+      "kind": "Input",
+      "label": "First number",
+      "description": "The public parameter a.",
+      "region": "root",
+      "inputs": [],
+      "outputs": [{"id": "value", "type": "float"}],
+      "config": {"parameter": "a"}
+    },
+    {
+      "id": "b",
+      "kind": "Input",
+      "label": "Second number",
+      "description": "The public parameter b.",
+      "region": "root",
+      "inputs": [],
+      "outputs": [{"id": "value", "type": "float"}],
+      "config": {"parameter": "b"}
+    },
+    {
+      "id": "distance",
+      "kind": "Compute",
+      "label": "Compute absolute distance",
+      "description": "Return the non-negative absolute value of a minus b for finite numeric inputs.",
+      "region": "root",
+      "inputs": [{"id": "a", "type": "float"}, {"id": "b", "type": "float"}],
+      "outputs": [{"id": "value", "type": "float"}],
+      "config": {},
+      "constraints": ["pure", "O(1) time"]
+    },
+    {
+      "id": "result",
+      "kind": "Output",
+      "label": "Return distance",
+      "description": "Return the computed non-negative distance.",
+      "region": "root",
+      "inputs": [{"id": "value", "type": "float"}],
+      "outputs": [],
+      "config": {"mode": "return"}
+    }
+  ],
+  "edges": [
+    {"from": {"node": "a", "port": "value"}, "to": {"node": "distance", "port": "a"}},
+    {"from": {"node": "b", "port": "value"}, "to": {"node": "distance", "port": "b"}},
+    {"from": {"node": "distance", "port": "value"}, "to": {"node": "result", "port": "value"}}
+  ],
+  "constraints": ["Do not mutate inputs", "O(1) time"],
+  "examples": [{"inputs": {"a": 2, "b": 7}, "outputs": {"return": 5}}],
+  "metadata": {"provenance": "hand-authored synthetic demonstration"}
+}

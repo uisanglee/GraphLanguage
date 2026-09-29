@@ -1,0 +1,34 @@
+[
+  {
+    "id": "parsel-function-contract",
+    "interface": "function",
+    "benchmarks": ["humaneval", "mbpp", "bigcodebench", "livecodebench"],
+    "task": {
+      "task_id": "demo:parsel-function-contract",
+      "benchmark": "synthetic",
+      "interface_mode": "function",
+      "prompt_variant": "primary",
+      "task": "Implement absolute_distance(a, b), returning the non-negative absolute difference between two numbers.",
+      "starter_code": "",
+      "entrypoint": "absolute_distance",
+      "metadata": {}
+    },
+    "parsel": "absolute_distance(a, b): Call subtract to compute a minus b, then call absolute_value and return the non-negative result\n  subtract(a, b): Return a minus b\n  absolute_value(value): Return value when it is non-negative and otherwise return its negation"
+  },
+  {
+    "id": "parsel-stdio-contract",
+    "interface": "stdio",
+    "benchmarks": ["livecodebench"],
+    "task": {
+      "task_id": "demo:parsel-stdio-contract",
+      "benchmark": "synthetic",
+      "interface_mode": "stdio",
+      "prompt_variant": "primary",
+      "task": "Read whitespace-separated integers from standard input and print their sum followed by a newline.",
+      "starter_code": "",
+      "entrypoint": null,
+      "metadata": {}
+    },
+    "parsel": "sum_stdin(): Read all standard input, call parse_integers and total_values, then print the integer total followed by one newline\n  parse_integers(text): Return the whitespace-separated integers in text as a list, or an empty list for empty input\n  total_values(values): Return the sum of values, using zero for an empty list"
+  }
+]

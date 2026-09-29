@@ -23,7 +23,7 @@ from retrieve_demonstrations import (
     synthesizer_demo_messages,
 )
 from schema_validation import load_schema, validate_schema
-from validate_artifact import validate_artifact
+from validate_artifact import strip_fence, validate_artifact
 from validate_graph import validate_semantics
 from graphdsl_nodes import BOUNDARIES, node_request, check_node_source, compile_graph, node_demonstrations
 from inference_journal import JournalClient, run_identity
@@ -128,7 +128,10 @@ class Client:
                 content = payload["choices"][0]["message"].get("content") or ""
                 return content, {"elapsed_seconds": elapsed, "usage": payload.get("usage", {}),
                                  "finish_reason": payload['choices'][0].get('finish_reason')}
-            except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError):
+            except urllib.error.HTTPError as error:
+                detail = error.read().decode("utf-8", errors="replace")[:4000]
+                raise RuntimeError(f"HTTP {error.code}: {detail}") from error
+            except (urllib.error.URLError, TimeoutError):
                 if attempt + 1 == attempts:
                     raise
                 time.sleep(min(20, 2 ** attempt))
@@ -319,14 +322,21 @@ def main() -> None:
                             if node['kind'] in BOUNDARIES:
                                 continue
                             demo_messages, demo_ids = node_demonstrations(node,args.num_code_demonstrations)
-                            code, inference = synthesizer.complete([
+                            raw_code, inference = synthesizer.complete([
                                 {'role':'system', 'content':node_system},
                                 *demo_messages,
                                 {'role':'user', 'content':json.dumps(node_request(graph, node), ensure_ascii=False)},
                             ], args.max_node_tokens, args.temperature)
                             record['llm_calls'] += 1
+                            code = strip_fence(raw_code)
                             errors = check_node_source(code, node)
-                            record['node_results'][node['id']] = dict(code=code, errors=errors, inference=inference, demonstration_ids=demo_ids)
+                            node_result = dict(
+                                code=code, errors=errors, inference=inference,
+                                demonstration_ids=demo_ids,
+                            )
+                            if code != raw_code.strip():
+                                node_result['raw_code'] = raw_code
+                            record['node_results'][node['id']] = node_result
                             if errors:
                                 record['artifact_errors'] = [f"{node['id']}: {e}" for e in errors]
                                 break

@@ -23,8 +23,7 @@ def strip_fence(text: str) -> str:
 def validate_artifact(text: str, interface_mode: str) -> list[str]:
     errors: list[str] = []
     value = text.strip()
-    if value.startswith("```"):
-        errors.append("artifact must not use Markdown fences")
+    # Normalize one outer chat fence consistently with the GraphIR and Parsel readers.
     value = strip_fence(value)
     if not value:
         return errors + ["artifact is empty"]

@@ -1,7 +1,7 @@
 {
   "name": "qwen7b-parsel-graphdsl-1x1",
   "input_dir": "data/normalized",
-  "output_dir": "outputs/qwen7b-parsel-graphdsl-nodes-v2",
+  "output_dir": "outputs/qwen7b-parsel-graphdsl-nodes-v3",
   "benchmarks": ["humaneval", "mbpp", "bigcodebench", "livecodebench"],
   "official_eval_only": true,
   "generation": {
@@ -18,8 +18,8 @@
     {
       "name": "graphdsl-direct-1x1",
       "kind": "graphdsl",
-      "planner_demonstrations": 0,
-      "code_demonstrations": 0,
+      "planner_demonstrations": 1,
+      "code_demonstrations": 1,
       "constraint_mode": "response_format",
       "validation_mode": "full",
       "high_level_plan": false
@@ -27,8 +27,8 @@
     {
       "name": "graphdsl-plan-1x1",
       "kind": "graphdsl",
-      "planner_demonstrations": 0,
-      "code_demonstrations": 0,
+      "planner_demonstrations": 1,
+      "code_demonstrations": 1,
       "constraint_mode": "response_format",
       "validation_mode": "full",
       "high_level_plan": true
@@ -36,11 +36,13 @@
     {
       "name": "parsel-direct-1x1",
       "kind": "parsel",
+      "parsel_demonstrations": 1,
       "high_level_plan": false
     },
     {
       "name": "parsel-plan-1x1",
       "kind": "parsel",
+      "parsel_demonstrations": 1,
       "high_level_plan": true
     }
   ],

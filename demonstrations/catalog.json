@@ -1,5 +1,14 @@
 [
   {
+    "id": "function-basic",
+    "interface": "function",
+    "benchmarks": ["humaneval", "mbpp", "bigcodebench", "livecodebench"],
+    "task": "Implement absolute_distance(a, b), returning the non-negative absolute difference between two numbers.",
+    "keywords": ["function", "basic", "contract", "number", "return"],
+    "graph": "../examples/function_basic.graph.json",
+    "artifact": "artifacts/function_basic.py"
+  },
+  {
     "id": "function-loop",
     "interface": "function",
     "benchmarks": ["humaneval", "mbpp", "bigcodebench"],

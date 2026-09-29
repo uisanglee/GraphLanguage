@@ -60,7 +60,10 @@ def export_functional(
     jobs: list[dict[str, Any]] = []
     for task_id, result in sorted(results.items()):
         task = tasks[task_id]
-        candidate = strip_fence(result.get("generated_artifact", ""))
+        generation_valid = result.get("artifact_valid") is True
+        candidate = (
+            strip_fence(result.get("generated_artifact", "")) if generation_valid else ""
+        )
         if benchmark == "humaneval":
             test_source = task["reference"]["test"]
             invocation = f"check({task['entrypoint']})"
@@ -75,6 +78,11 @@ def export_functional(
             "setup": task.get("starter_code", "") if benchmark == "mbpp" else "",
             "test_source": test_source,
             "invocation": invocation,
+            "generation_valid": generation_valid,
+            "generation_errors": result.get("artifact_errors") or [
+                result.get("pipeline_error") or result.get("generation_error") or
+                result.get("synthesis_error") or "no valid generated artifact"
+            ],
         })
     return jobs
 

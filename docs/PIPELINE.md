@@ -23,9 +23,10 @@ proven by schema validation.
 
 Retrieval: planner demonstrations use the existing catalog. Node synthesis uses the hand-authored
 demonstrations/node_catalog.json, filtered by kind and ranked lexically. A missing matching example
-means zero examples. IDs are logged. The default Parsel comparison disables demonstrations for both
-GraphDSL stages. The old --synthesis-mode whole is available only as an explicitly labeled ablation
-or for repository patch experiments.
+means zero examples. IDs are logged. The default comparison uses one synthetic format demonstration
+for GraphDSL planning, node synthesis, and NL-to-Parsel; zero demonstrations is an explicitly
+labeled ablation. The old --synthesis-mode whole is available only as an explicitly labeled
+ablation or for repository patch experiments.
 
 Generation uses per-task, per-payload response journals. Interrupted later stages reuse earlier
 responses. Pending uncertain requests never silently trigger another sample. A run identity prevents

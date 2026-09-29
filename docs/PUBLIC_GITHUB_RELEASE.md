@@ -22,7 +22,7 @@ Confirm that generated and local-only files are ignored:
 git check-ignore -v \
   data/normalized/swebench.jsonl \
   data/qwen/nl_to_graphdsl.jsonl \
-  outputs/qwen7b-parsel-graphdsl-nodes-v2 \
+  outputs/qwen7b-parsel-graphdsl-nodes-v3 \
   references/NeurIPS-2023-parsel-algorithmic-reasoning-with-language-models-by-composing-decompositions-Paper-Conference.pdf
 ```
 
