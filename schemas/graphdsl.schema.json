@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/graphdsl/0.1/schema.json",
+  "title": "Python GraphDSL 0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "graphdsl_version",
+    "id",
+    "title",
+    "description",
+    "target",
+    "interface",
+    "regions",
+    "nodes",
+    "edges",
+    "constraints",
+    "examples",
+    "metadata"
+  ],
+  "properties": {
+    "graphdsl_version": {"const": "0.1.0"},
+    "id": {"$ref": "#/$defs/id"},
+    "title": {"type": "string", "minLength": 1},
+    "description": {"type": "string", "minLength": 1},
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "python_version"],
+      "properties": {
+        "language": {"const": "python"},
+        "python_version": {"type": "string", "minLength": 1}
+      }
+    },
+    "interface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["function", "stdio", "repository_patch"]},
+        "entrypoint": {"type": ["string", "null"]},
+        "signature": {"type": ["string", "null"]},
+        "repository": {"type": ["string", "null"]},
+        "base_commit": {"type": ["string", "null"]}
+      }
+    },
+    "regions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/region"}
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/node"}
+    },
+    "edges": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/edge"}
+    },
+    "constraints": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": []
+    },
+    "examples": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/example"},
+      "default": []
+    },
+    "metadata": {"type": "object", "default": {}}
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z_][A-Za-z0-9_.:/-]*$"
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "owner", "role"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "owner": {"type": ["string", "null"]},
+        "role": {
+          "enum": ["root", "body", "then", "elif", "else", "handler", "finally"]
+        },
+        "label": {"type": "string"}
+      }
+    },
+    "port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "type": {"type": "string", "minLength": 1},
+        "description": {"type": "string"},
+        "required": {"type": "boolean", "default": true},
+        "cardinality": {"enum": ["one", "many"], "default": "one"},
+        "default": {}
+      }
+    },
+    "source_anchor": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "repository": {"type": "string"},
+        "revision": {"type": "string"},
+        "path": {"type": "string"},
+        "symbol": {"type": "string"},
+        "start_line": {"type": "integer", "minimum": 1},
+        "end_line": {"type": "integer", "minimum": 1}
+      }
+    },
+    "example": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inputs", "outputs"],
+      "properties": {
+        "inputs": {"type": "object"},
+        "outputs": {"type": "object"},
+        "description": {"type": "string"}
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "kind", "label", "description", "region", "inputs", "outputs", "config"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "kind": {
+          "enum": [
+            "Input", "Output", "Literal", "Function", "Module",
+            "RegionInput", "RegionOutput", "Compute", "Custom", "Call",
+            "Access", "Construct", "Update", "Branch", "Loop", "Try",
+            "Raise", "Exit", "Effect", "Resource", "Context", "Assert",
+            "Test", "SourceArtifact", "Locate", "Edit", "AddArtifact",
+            "DeleteArtifact", "Patch"
+          ]
+        },
+        "label": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1},
+        "region": {"$ref": "#/$defs/id"},
+        "inputs": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/port"}
+        },
+        "outputs": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/port"}
+        },
+        "config": {"type": "object"},
+        "constraints": {
+          "type": "array",
+          "items": {"type": "string"},
+          "default": []
+        },
+        "examples": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/example"},
+          "default": []
+        },
+        "source_anchor": {"$ref": "#/$defs/source_anchor"},
+        "metadata": {"type": "object"}
+      }
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node", "port"],
+      "properties": {
+        "node": {"$ref": "#/$defs/id"},
+        "port": {"$ref": "#/$defs/id"}
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": {"$ref": "#/$defs/endpoint"},
+        "to": {"$ref": "#/$defs/endpoint"}
+      }
+    }
+  }
+}

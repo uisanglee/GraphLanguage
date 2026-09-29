@@ -1,0 +1,80 @@
+{
+  "graphdsl_version": "0.1.0",
+  "id": "example:stdio-sum",
+  "title": "Sum integers from standard input",
+  "description": "Read whitespace-separated integers and print their sum.",
+  "target": {"language": "python", "python_version": ">=3.10"},
+  "interface": {"mode": "stdio", "entrypoint": null},
+  "regions": [{"id": "root", "owner": null, "role": "root"}],
+  "nodes": [
+    {
+      "id": "stdin",
+      "kind": "Input",
+      "label": "Standard input",
+      "description": "Read all standard input exactly once.",
+      "region": "root",
+      "inputs": [],
+      "outputs": [
+        {"id": "text", "type": "str"},
+        {"id": "effect", "type": "EffectToken"}
+      ],
+      "config": {"mode": "stdin"}
+    },
+    {
+      "id": "parse",
+      "kind": "Compute",
+      "label": "Parse integers",
+      "description": "Split on whitespace and parse each token as an integer.",
+      "region": "root",
+      "inputs": [{"id": "text", "type": "str"}],
+      "outputs": [{"id": "numbers", "type": "list[int]"}],
+      "config": {},
+      "constraints": ["pure"]
+    },
+    {
+      "id": "sum",
+      "kind": "Compute",
+      "label": "Sum values",
+      "description": "Calculate the arithmetic sum of all numbers.",
+      "region": "root",
+      "inputs": [{"id": "numbers", "type": "list[int]"}],
+      "outputs": [{"id": "total", "type": "int"}],
+      "config": {},
+      "constraints": ["pure"]
+    },
+    {
+      "id": "format",
+      "kind": "Compute",
+      "label": "Format output",
+      "description": "Convert the total to its decimal representation.",
+      "region": "root",
+      "inputs": [{"id": "total", "type": "int"}],
+      "outputs": [{"id": "text", "type": "str"}],
+      "config": {},
+      "constraints": ["pure"]
+    },
+    {
+      "id": "stdout",
+      "kind": "Output",
+      "label": "Standard output",
+      "description": "Print the formatted text followed by one newline.",
+      "region": "root",
+      "inputs": [
+        {"id": "text", "type": "str"},
+        {"id": "effect_in", "type": "EffectToken"}
+      ],
+      "outputs": [{"id": "effect_out", "type": "EffectToken"}],
+      "config": {"mode": "stdout", "newline": true}
+    }
+  ],
+  "edges": [
+    {"from": {"node": "stdin", "port": "text"}, "to": {"node": "parse", "port": "text"}},
+    {"from": {"node": "parse", "port": "numbers"}, "to": {"node": "sum", "port": "numbers"}},
+    {"from": {"node": "sum", "port": "total"}, "to": {"node": "format", "port": "total"}},
+    {"from": {"node": "format", "port": "text"}, "to": {"node": "stdout", "port": "text"}},
+    {"from": {"node": "stdin", "port": "effect"}, "to": {"node": "stdout", "port": "effect_in"}}
+  ],
+  "constraints": ["Accept arbitrary whitespace"],
+  "examples": [{"inputs": {"stdin": "1 2 3\n"}, "outputs": {"stdout": "6\n"}}],
+  "metadata": {}
+}

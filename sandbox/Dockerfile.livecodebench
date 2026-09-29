@@ -1,0 +1,22 @@
+FROM python:3.11.10-slim-bookworm
+
+ARG LCB_REF
+RUN test -n "$LCB_REF"
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HF_HOME=/opt/huggingface
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git build-essential \
+    && rm -rf /var/lib/apt/lists/*
+RUN git clone https://github.com/LiveCodeBench/LiveCodeBench.git /opt/livecodebench \
+    && cd /opt/livecodebench \
+    && git checkout "$LCB_REF" \
+    && python -m pip install --no-cache-dir -e . \
+    && python -c "from lcb_runner.benchmarks.code_generation import load_code_generation_dataset; assert len(load_code_generation_dataset('release_v6')) == 1055"
+
+WORKDIR /work
+ENV HF_HUB_OFFLINE=1 \
+    HF_DATASETS_OFFLINE=1 \
+    HOME=/tmp

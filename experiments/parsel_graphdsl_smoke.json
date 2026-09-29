@@ -1,0 +1,16 @@
+{
+  "name": "qwen7b-node-smoke",
+  "input_dir": "data/normalized",
+  "output_dir": "outputs/qwen7b-node-smoke-v2",
+  "benchmarks": ["humaneval", "mbpp"],
+  "official_eval_only": true,
+  "generation": {"base_url":"http://localhost:8000/v1", "model":"Qwen/Qwen2.5-Coder-7B-Instruct", "temperature":0.0, "limit":3},
+  "conditions": [
+    {"name":"direct-python-1x1","kind":"direct"},
+    {"name":"graphdsl-direct-1x1","kind":"graphdsl","planner_demonstrations":0,"code_demonstrations":0,"synthesis_mode":"nodes"},
+    {"name":"graphdsl-plan-1x1","kind":"graphdsl","planner_demonstrations":0,"code_demonstrations":0,"synthesis_mode":"nodes","high_level_plan":true},
+    {"name":"parsel-direct-1x1","kind":"parsel"},
+    {"name":"parsel-plan-1x1","kind":"parsel","high_level_plan":true}
+  ],
+  "evaluation": {"workers":2,"functional_timeout":5,"functional_memory_mb":512,"build_functional_image":false,"run_official":false}
+}

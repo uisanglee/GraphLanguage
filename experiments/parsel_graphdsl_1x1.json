@@ -1,0 +1,57 @@
+{
+  "name": "qwen7b-parsel-graphdsl-1x1",
+  "input_dir": "data/normalized",
+  "output_dir": "outputs/qwen7b-parsel-graphdsl-nodes-v2",
+  "benchmarks": ["humaneval", "mbpp", "bigcodebench", "livecodebench"],
+  "official_eval_only": true,
+  "generation": {
+    "base_url": "http://localhost:8000/v1",
+    "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+    "temperature": 0.0,
+    "limit": null
+  },
+  "conditions": [
+    {
+      "name": "direct-python-1x1",
+      "kind": "direct"
+    },
+    {
+      "name": "graphdsl-direct-1x1",
+      "kind": "graphdsl",
+      "planner_demonstrations": 0,
+      "code_demonstrations": 0,
+      "constraint_mode": "response_format",
+      "validation_mode": "full",
+      "high_level_plan": false
+    },
+    {
+      "name": "graphdsl-plan-1x1",
+      "kind": "graphdsl",
+      "planner_demonstrations": 0,
+      "code_demonstrations": 0,
+      "constraint_mode": "response_format",
+      "validation_mode": "full",
+      "high_level_plan": true
+    },
+    {
+      "name": "parsel-direct-1x1",
+      "kind": "parsel",
+      "high_level_plan": false
+    },
+    {
+      "name": "parsel-plan-1x1",
+      "kind": "parsel",
+      "high_level_plan": true
+    }
+  ],
+  "evaluation": {
+    "workers": 4,
+    "functional_timeout": 5,
+    "functional_memory_mb": 512,
+    "build_functional_image": false,
+    "run_official": true,
+    "official_timeout": 1800,
+    "bigcodebench_image": "bigcodebench/bigcodebench-evaluate:latest",
+    "livecodebench_image": "graphdsl-livecodebench:release-v6"
+  }
+}

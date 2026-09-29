@@ -1,0 +1,63 @@
+{
+  "name": "qwen-graphdsl-main",
+  "input_dir": "data/normalized",
+  "output_dir": "outputs/qwen-graphdsl-main",
+  "benchmarks": ["humaneval", "mbpp", "bigcodebench", "livecodebench", "swebench"],
+  "official_eval_only": true,
+  "generation": {
+    "base_url": "http://localhost:8000/v1",
+    "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+    "temperature": 0.0,
+    "limit": null
+  },
+  "conditions": [
+    {"name": "direct", "kind": "direct"},
+    {
+      "name": "graphdsl-full",
+      "kind": "graphdsl",
+      "synthesis_mode": "whole",
+      "planner_demonstrations": 1,
+      "code_demonstrations": 1,
+      "constraint_mode": "response_format",
+      "validation_mode": "full"
+    },
+    {
+      "name": "graphdsl-no-retrieval",
+      "kind": "graphdsl",
+      "synthesis_mode": "whole",
+      "planner_demonstrations": 0,
+      "code_demonstrations": 0,
+      "constraint_mode": "response_format",
+      "validation_mode": "full"
+    },
+    {
+      "name": "graphdsl-no-grammar",
+      "kind": "graphdsl",
+      "synthesis_mode": "whole",
+      "planner_demonstrations": 1,
+      "code_demonstrations": 1,
+      "constraint_mode": "none",
+      "validation_mode": "full"
+    },
+    {
+      "name": "graphdsl-no-semantic-gate",
+      "kind": "graphdsl",
+      "synthesis_mode": "whole",
+      "planner_demonstrations": 1,
+      "code_demonstrations": 1,
+      "constraint_mode": "response_format",
+      "validation_mode": "schema"
+    }
+  ],
+  "evaluation": {
+    "workers": 4,
+    "functional_timeout": 5,
+    "functional_memory_mb": 512,
+    "build_functional_image": false,
+    "run_official": true,
+    "official_timeout": 1800,
+    "bigcodebench_image": "bigcodebench/bigcodebench-evaluate:latest",
+    "livecodebench_image": "graphdsl-livecodebench:release-v6",
+    "swebench_dataset": "princeton-nlp/SWE-bench"
+  }
+}

@@ -1,0 +1,11 @@
+FROM python:3.11.10-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+COPY functional_worker.py /runner/functional_worker.py
+RUN pip install --no-cache-dir numpy==1.26.4
+RUN chmod 0555 /runner/functional_worker.py
+
+USER 65534:65534
+ENTRYPOINT ["python3", "/runner/functional_worker.py"]

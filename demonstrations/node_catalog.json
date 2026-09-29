@@ -1,0 +1,26 @@
+[
+  {
+    "id": "node-double-value",
+    "kind": "Compute",
+    "request": {
+      "signature": "def _gd_example_double(inputs, regions):",
+      "node": {"id": "double", "kind": "Compute", "description": "Return twice the input integer without mutation.", "inputs": [{"id":"x","type":"int"}], "outputs": [{"id":"y","type":"int"}], "config": {}},
+      "connected_contracts": [],
+      "region_callbacks": {}
+    },
+    "code": "def _gd_example_double(inputs, regions):\n    return {'y': inputs['x'] * 2}\n",
+    "provenance": "hand-authored ABI example; no benchmark solution"
+  },
+  {
+    "id": "node-loop-sum",
+    "kind": "Loop",
+    "request": {
+      "signature": "def _gd_example_loop(inputs, regions):",
+      "node": {"id":"loop","kind":"Loop","description":"Accumulate integers through the already-implemented body.","inputs":[{"id":"iterable","type":"list[int]"},{"id":"initial","type":"int"}],"outputs":[{"id":"total","type":"int"}],"config":{"mode":"for_each","body_region":"body","iteration":{"item_boundary":"item.value"},"carried":[{"initial_port":"initial","input_boundary":"state.value","output_boundary":"next.value","final_port":"total"}]}},
+      "connected_contracts": [],
+      "region_callbacks": {"body":{"inputs":["item.value","state.value"],"outputs":["next.value"],"description":"Add item to state and return next.value."}}
+    },
+    "code": "def _gd_example_loop(inputs, regions):\n    total = inputs['initial']\n    for item in inputs['iterable']:\n        total = regions['body']({'item.value': item, 'state.value': total})['next.value']\n    return {'total': total}\n",
+    "provenance": "hand-authored ABI example; no benchmark solution"
+  }
+]

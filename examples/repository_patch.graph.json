@@ -1,0 +1,94 @@
+{
+  "graphdsl_version": "0.1.0",
+  "id": "example:repository-fix",
+  "title": "Handle empty parser input",
+  "description": "Update the parser so empty input returns an empty result instead of raising IndexError.",
+  "target": {"language": "python", "python_version": ">=3.10"},
+  "interface": {
+    "mode": "repository_patch",
+    "entrypoint": null,
+    "repository": "example/parser",
+    "base_commit": "0123456789abcdef"
+  },
+  "regions": [{"id": "root", "owner": null, "role": "root"}],
+  "nodes": [
+    {
+      "id": "issue",
+      "kind": "Input",
+      "label": "Issue contract",
+      "description": "Empty parser input must return an empty result without changing non-empty behavior.",
+      "region": "root",
+      "inputs": [],
+      "outputs": [{"id": "requirement", "type": "str"}],
+      "config": {"mode": "issue"}
+    },
+    {
+      "id": "locate_parser",
+      "kind": "Locate",
+      "label": "Locate parser entrypoint",
+      "description": "Find the parser function responsible for indexing the first token.",
+      "region": "root",
+      "inputs": [{"id": "requirement", "type": "str"}],
+      "outputs": [{"id": "symbol", "type": "Artifact[Function]"}],
+      "config": {"search_scope": "Python source excluding tests"}
+    },
+    {
+      "id": "edit_parser",
+      "kind": "Edit",
+      "label": "Guard empty input",
+      "description": "Add the smallest guard that returns the existing empty-result representation.",
+      "region": "root",
+      "inputs": [
+        {"id": "symbol", "type": "Artifact[Function]"},
+        {"id": "requirement", "type": "str"}
+      ],
+      "outputs": [{"id": "change", "type": "Patch[Function]"}],
+      "config": {"preserve_non_empty_behavior": true},
+      "source_anchor": {
+        "repository": "example/parser",
+        "revision": "0123456789abcdef"
+      }
+    },
+    {
+      "id": "regression_test",
+      "kind": "Test",
+      "label": "Empty input regression",
+      "description": "Verify empty input returns an empty result and prior parser tests still pass.",
+      "region": "root",
+      "inputs": [{"id": "change", "type": "Patch[Function]"}],
+      "outputs": [{"id": "verified_change", "type": "Patch[Function]"}],
+      "config": {"required": ["new regression test", "existing parser test suite"]}
+    },
+    {
+      "id": "patch",
+      "kind": "Patch",
+      "label": "Repository patch",
+      "description": "Emit one minimal unified diff against the base commit.",
+      "region": "root",
+      "inputs": [{"id": "changes", "type": "Patch[Function]", "cardinality": "many"}],
+      "outputs": [{"id": "diff", "type": "Patch[Repository]"}],
+      "config": {"format": "unified_diff"}
+    },
+    {
+      "id": "result",
+      "kind": "Output",
+      "label": "Patch output",
+      "description": "Return only the applicable unified diff.",
+      "region": "root",
+      "inputs": [{"id": "patch", "type": "Patch[Repository]"}],
+      "outputs": [],
+      "config": {"mode": "patch"}
+    }
+  ],
+  "edges": [
+    {"from": {"node": "issue", "port": "requirement"}, "to": {"node": "locate_parser", "port": "requirement"}},
+    {"from": {"node": "issue", "port": "requirement"}, "to": {"node": "edit_parser", "port": "requirement"}},
+    {"from": {"node": "locate_parser", "port": "symbol"}, "to": {"node": "edit_parser", "port": "symbol"}},
+    {"from": {"node": "edit_parser", "port": "change"}, "to": {"node": "regression_test", "port": "change"}},
+    {"from": {"node": "regression_test", "port": "verified_change"}, "to": {"node": "patch", "port": "changes"}},
+    {"from": {"node": "patch", "port": "diff"}, "to": {"node": "result", "port": "patch"}}
+  ],
+  "constraints": ["Minimal patch", "No behavior change for non-empty input"],
+  "examples": [],
+  "metadata": {}
+}

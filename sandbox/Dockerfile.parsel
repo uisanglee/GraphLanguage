@@ -1,0 +1,8 @@
+FROM python:3.11.10-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends procps && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir numpy==1.26.4 tqdm==4.66.5
+COPY third_party/parsel /opt/parsel
+COPY sandbox/parsel_bridge /adapter
+ENV PYTHONPATH=/adapter PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0
+USER 65534:65534
+ENTRYPOINT ["python", "/adapter/worker.py"]

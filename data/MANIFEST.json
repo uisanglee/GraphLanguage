@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "task_count": 5627,
+  "qwen_request_count_with_expanded_variants": 8486,
+  "files": {
+    "normalized/humaneval.jsonl": {
+      "records": 164,
+      "sha256": "6fe10e81f89cf823bf8d1128da254117b46cbb293e475acb3bd209e0912be52a"
+    },
+    "normalized/mbpp.jsonl": {
+      "records": 974,
+      "sha256": "f10d6d040cd03cea1f79bca12bdb3868bd3b2bf4083f1a098e1fc24bb4066d56"
+    },
+    "normalized/bigcodebench.jsonl": {
+      "records": 1140,
+      "sha256": "ce3ed19e0a8033f44411cbf55989a12330833d88cf477c4479d315d324337fd2"
+    },
+    "normalized/livecodebench.jsonl": {
+      "records": 1055,
+      "sha256": "95bfcb1390e9a0c6febb9a7de29c2ad1f7a1fc05d97d2cd55503e3f45d6219cd"
+    },
+    "normalized/swebench.jsonl": {
+      "records": 2294,
+      "sha256": "8f70156f7dfcf1db615f8f3b79a72bf3231cae4f1c0a220f6ab1706d70760b58"
+    },
+    "qwen/nl_to_graphdsl.jsonl": {
+      "records": 8486,
+      "sha256": "f94e3d2dd992d7bfd2a1e89ea870da30f3553ef8e73a8e2208daf120276a789e"
+    }
+  }
+}

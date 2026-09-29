@@ -1,0 +1,9 @@
+.git
+**/.git
+**/__pycache__
+**/*.pyc
+outputs
+data
+references
+.env
+.env.*

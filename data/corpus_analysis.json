@@ -1,0 +1,205 @@
+{
+  "total": 5627,
+  "counts": {
+    "bigcodebench": 1140,
+    "humaneval": 164,
+    "livecodebench": 1055,
+    "mbpp": 974,
+    "swebench": 2294
+  },
+  "interfaces": {
+    "function": 2278,
+    "stdio": 1055,
+    "repository_patch": 2294
+  },
+  "prompt_lengths": {
+    "bigcodebench": {
+      "min": 232,
+      "median": 607,
+      "p95": 1201,
+      "max": 3464
+    },
+    "humaneval": {
+      "min": 115,
+      "median": 396,
+      "p95": 926,
+      "max": 1360
+    },
+    "livecodebench": {
+      "min": 433,
+      "median": 1364,
+      "p95": 2531,
+      "max": 3950
+    },
+    "mbpp": {
+      "min": 161,
+      "median": 268,
+      "p95": 522,
+      "max": 4335
+    },
+    "swebench": {
+      "min": 35,
+      "median": 1115,
+      "p95": 5150,
+      "max": 57256
+    }
+  },
+  "prompt_variants": {
+    "bigcodebench": 2280,
+    "humaneval": 164,
+    "livecodebench": 1055,
+    "mbpp": 974,
+    "swebench": 4588
+  },
+  "starter_code_present": {
+    "bigcodebench": 1140,
+    "humaneval": 164,
+    "livecodebench": 444,
+    "mbpp": 2
+  },
+  "keyword_task_counts": {
+    "bigcodebench": {
+      "exception/error": 334,
+      "sorting/search": 48,
+      "file/resource": 348,
+      "regex/text": 73,
+      "class/object": 338,
+      "database/table": 474,
+      "async/concurrency": 32,
+      "network/url": 86,
+      "graph/tree": 15,
+      "repository change": 52,
+      "generator/iterator": 9,
+      "complexity/performance": 10,
+      "stdin/stdout": 2
+    },
+    "humaneval": {
+      "regex/text": 5,
+      "sorting/search": 17,
+      "complexity/performance": 2,
+      "graph/tree": 2,
+      "class/object": 2,
+      "database/table": 1,
+      "file/resource": 3
+    },
+    "livecodebench": {
+      "class/object": 453,
+      "stdin/stdout": 603,
+      "exception/error": 15,
+      "generator/iterator": 5,
+      "graph/tree": 63,
+      "async/concurrency": 51,
+      "regex/text": 56,
+      "sorting/search": 35,
+      "database/table": 11,
+      "file/resource": 32,
+      "network/url": 1
+    },
+    "mbpp": {
+      "file/resource": 6,
+      "regex/text": 38,
+      "sorting/search": 59,
+      "complexity/performance": 3,
+      "repository change": 4,
+      "generator/iterator": 1,
+      "network/url": 3,
+      "graph/tree": 3,
+      "stdin/stdout": 4,
+      "class/object": 2,
+      "database/table": 2,
+      "exception/error": 5,
+      "async/concurrency": 1
+    },
+    "swebench": {
+      "network/url": 1113,
+      "sorting/search": 140,
+      "exception/error": 845,
+      "repository change": 1091,
+      "class/object": 873,
+      "stdin/stdout": 82,
+      "file/resource": 627,
+      "database/table": 399,
+      "regex/text": 51,
+      "graph/tree": 113,
+      "async/concurrency": 129,
+      "generator/iterator": 84,
+      "complexity/performance": 61
+    }
+  },
+  "reference_ast_parsed": {
+    "bigcodebench": 1140,
+    "humaneval": 164,
+    "mbpp": 974
+  },
+  "reference_ast_task_counts": {
+    "bigcodebench": {
+      "Loop": 382,
+      "Access": 1140,
+      "Update": 1133,
+      "Function": 1140,
+      "Import": 1140,
+      "Call": 1140,
+      "Comprehension": 349,
+      "Branch": 613,
+      "Try/Raise": 398,
+      "Construct": 845,
+      "Context/Resource": 171,
+      "Class": 10
+    },
+    "humaneval": {
+      "Branch": 107,
+      "Access": 114,
+      "Update": 108,
+      "Function": 164,
+      "Import": 28,
+      "Construct": 68,
+      "Call": 143,
+      "Loop": 87,
+      "Comprehension": 47,
+      "Try/Raise": 2
+    },
+    "mbpp": {
+      "Loop": 410,
+      "Access": 560,
+      "Update": 783,
+      "Function": 974,
+      "Call": 767,
+      "Comprehension": 194,
+      "Branch": 447,
+      "Import": 194,
+      "Construct": 200,
+      "Class": 4,
+      "Try/Raise": 2,
+      "Generator": 3
+    }
+  },
+  "livecodebench_platforms": {
+    "leetcode": 444,
+    "atcoder": 602,
+    "codeforces": 9
+  },
+  "livecodebench_difficulties": {
+    "easy": 322,
+    "medium": 383,
+    "hard": 350
+  },
+  "swebench_repositories": {
+    "astropy/astropy": 95,
+    "django/django": 850,
+    "matplotlib/matplotlib": 184,
+    "mwaskom/seaborn": 22,
+    "pallets/flask": 11,
+    "psf/requests": 44,
+    "pydata/xarray": 110,
+    "pylint-dev/pylint": 57,
+    "pytest-dev/pytest": 119,
+    "scikit-learn/scikit-learn": 229,
+    "sphinx-doc/sphinx": 187,
+    "sympy/sympy": 386
+  },
+  "swebench_changed_files": {
+    "median": 1.0,
+    "p95": 4,
+    "max": 31
+  }
+}

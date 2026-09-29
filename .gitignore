@@ -1,0 +1,57 @@
+# Python bytecode, test caches, and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Local credentials and machine-specific configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+
+# Editors and operating-system metadata
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Generated benchmark corpora and model requests
+# Keep data/README.md, data/MANIFEST.json, and aggregate corpus analysis.
+/data/normalized/
+/data/qwen/
+/data/raw/
+
+# Generated inference/evaluation artifacts
+/outputs/
+/runs/
+/logs/
+/wandb/
+/mlruns/
+
+# Model weights and local caches
+/models/
+/checkpoints/
+/.cache/
+/huggingface/
+*.safetensors
+*.ckpt
+*.pth
+*.pt
+*.gguf
+
+# Locally supplied papers. Commit a citation/link instead of redistributing PDFs.
+/references/*.pdf
+
+# Temporary and backup files
+*.tmp
+*.bak
+*.orig

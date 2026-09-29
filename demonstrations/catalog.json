@@ -1,0 +1,28 @@
+[
+  {
+    "id": "function-loop",
+    "interface": "function",
+    "benchmarks": ["humaneval", "mbpp", "bigcodebench"],
+    "task": "Write sum_positive_squares(values: list[int]) -> int. Return the sum of the squares of positive integers. Visit each value once and do not mutate the input.",
+    "keywords": ["function", "loop", "iteration", "accumulator", "list", "sum"],
+    "graph": "../examples/function_loop.graph.json",
+    "artifact": "artifacts/function_loop.py"
+  },
+  {
+    "id": "stdio-pipeline",
+    "interface": "stdio",
+    "benchmarks": ["livecodebench"],
+    "task": "Read whitespace-separated integers from standard input and print their sum followed by a newline.",
+    "keywords": ["stdin", "stdout", "parse", "format", "competitive programming"],
+    "graph": "../examples/stdio.graph.json",
+    "artifact": "artifacts/stdio_sum.py"
+  },
+  {
+    "id": "repository-patch",
+    "interface": "repository_patch",
+    "benchmarks": ["swebench"],
+    "task": "Fix a repository parser so empty input returns the existing empty-result representation instead of raising IndexError. Preserve behavior for non-empty input and add a regression test.",
+    "keywords": ["repository", "issue", "locate", "edit", "patch", "regression test"],
+    "graph": "../examples/repository_patch.graph.json"
+  }
+]

@@ -1,0 +1,130 @@
+{
+  "graphdsl_version": "0.1.0",
+  "id": "example:sum-positive-squares",
+  "title": "Sum positive squares",
+  "description": "Return the sum of the squares of positive integers in values.",
+  "target": {"language": "python", "python_version": ">=3.10"},
+  "interface": {
+    "mode": "function",
+    "entrypoint": "sum_positive_squares",
+    "signature": "(values: list[int]) -> int"
+  },
+  "regions": [
+    {"id": "root", "owner": null, "role": "root"},
+    {"id": "sum_loop.body", "owner": "sum_loop", "role": "body"}
+  ],
+  "nodes": [
+    {
+      "id": "values",
+      "kind": "Input",
+      "label": "Values",
+      "description": "The function argument.",
+      "region": "root",
+      "inputs": [],
+      "outputs": [{"id": "value", "type": "list[int]"}],
+      "config": {"parameter": "values"}
+    },
+    {
+      "id": "zero",
+      "kind": "Literal",
+      "label": "Initial total",
+      "description": "Start accumulation at zero.",
+      "region": "root",
+      "inputs": [],
+      "outputs": [{"id": "value", "type": "int"}],
+      "config": {"value": 0}
+    },
+    {
+      "id": "sum_loop",
+      "kind": "Loop",
+      "label": "Accumulate positive squares",
+      "description": "Visit each value once and carry the running sum.",
+      "region": "root",
+      "inputs": [
+        {"id": "iterable", "type": "list[int]"},
+        {"id": "initial_total", "type": "int"}
+      ],
+      "outputs": [{"id": "total", "type": "int"}],
+      "config": {
+        "mode": "for_each",
+        "body_region": "sum_loop.body",
+        "iteration": {"item_boundary": "loop_item.value"},
+        "carried": [
+          {
+            "initial_port": "initial_total",
+            "input_boundary": "loop_total.value",
+            "output_boundary": "next_total.value",
+            "final_port": "total"
+          }
+        ]
+      }
+    },
+    {
+      "id": "loop_item",
+      "kind": "RegionInput",
+      "label": "Current item",
+      "description": "The current list item supplied by the owning loop.",
+      "region": "sum_loop.body",
+      "inputs": [],
+      "outputs": [{"id": "value", "type": "int"}],
+      "config": {"binding": "item"}
+    },
+    {
+      "id": "loop_total",
+      "kind": "RegionInput",
+      "label": "Current total",
+      "description": "The loop-carried total before this iteration.",
+      "region": "sum_loop.body",
+      "inputs": [],
+      "outputs": [{"id": "value", "type": "int"}],
+      "config": {"binding": "total"}
+    },
+    {
+      "id": "add_if_positive",
+      "kind": "Compute",
+      "label": "Add positive square",
+      "description": "If item is positive, add item squared to total; otherwise keep total.",
+      "region": "sum_loop.body",
+      "inputs": [
+        {"id": "item", "type": "int"},
+        {"id": "total", "type": "int"}
+      ],
+      "outputs": [{"id": "result", "type": "int"}],
+      "config": {},
+      "constraints": ["pure"]
+    },
+    {
+      "id": "next_total",
+      "kind": "RegionOutput",
+      "label": "Next total",
+      "description": "The carried total for the next iteration.",
+      "region": "sum_loop.body",
+      "inputs": [{"id": "value", "type": "int"}],
+      "outputs": [],
+      "config": {"binding": "total"}
+    },
+    {
+      "id": "result",
+      "kind": "Output",
+      "label": "Return total",
+      "description": "Return the final accumulated total.",
+      "region": "root",
+      "inputs": [{"id": "value", "type": "int"}],
+      "outputs": [],
+      "config": {"mode": "return"}
+    }
+  ],
+  "edges": [
+    {"from": {"node": "values", "port": "value"}, "to": {"node": "sum_loop", "port": "iterable"}},
+    {"from": {"node": "zero", "port": "value"}, "to": {"node": "sum_loop", "port": "initial_total"}},
+    {"from": {"node": "loop_item", "port": "value"}, "to": {"node": "add_if_positive", "port": "item"}},
+    {"from": {"node": "loop_total", "port": "value"}, "to": {"node": "add_if_positive", "port": "total"}},
+    {"from": {"node": "add_if_positive", "port": "result"}, "to": {"node": "next_total", "port": "value"}},
+    {"from": {"node": "sum_loop", "port": "total"}, "to": {"node": "result", "port": "value"}}
+  ],
+  "constraints": ["O(n) time", "Do not mutate values"],
+  "examples": [
+    {"inputs": {"values": [-2, 3, 4]}, "outputs": {"return": 25}}
+  ],
+  "metadata": {}
+}
