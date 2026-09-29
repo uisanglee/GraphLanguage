@@ -1,0 +1,4 @@
+# Host-side dependencies for corpus preparation and GraphIR orchestration.
+# Qwen is accessed through an OpenAI-compatible endpoint, so CUDA, PyTorch,
+# Transformers, and vLLM intentionally do not belong in this environment.
+duckdb==1.5.1

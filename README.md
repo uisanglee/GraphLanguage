@@ -55,13 +55,26 @@ Python 3.10 이상이 필요하다. LiveCodeBench는 원본의 private test colu
 prompt column만 원격 projection하기 위해 DuckDB를 사용한다.
 
 ```bash
-python -m pip install duckdb
+conda env create -f environment.yml
+conda activate graphir
+python -m unittest discover -s tests -v
+
 python scripts/fetch_benchmarks.py --output-dir data/normalized
 python scripts/analyze_corpus.py \
   --input-dir data/normalized \
   --output docs/CORPUS_ANALYSIS.md \
   --json-output data/corpus_analysis.json
 ```
+
+Conda를 사용하지 않는 경우에는 Python 3.10 이상의 독립 환경에서 다음처럼 설치한다.
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+이 환경은 corpus 준비와 GraphIR pipeline 실행을 담당한다. Qwen은 OpenAI-compatible
+endpoint로 호출하므로 GPU 서버의 CUDA/PyTorch/vLLM 환경은 여기에서 분리한다. Parsel도
+`sandbox/Dockerfile.parsel`에 고정된 별도 컨테이너에서 실행한다.
 
 LiveCodeBench의 효율적 column projection에는 공식 `release_v6`를 Parquet으로 변환한
 공개 mirror를 사용한다. 각 레코드에는 공식 upstream과 mirror provenance를 모두 남기며,
