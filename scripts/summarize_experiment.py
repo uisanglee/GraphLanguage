@@ -74,6 +74,14 @@ def main() -> None:
                 "condition": condition_dir.name,
                 "benchmark": benchmark,
                 "generated": total,
+                "contract_parse_rate": (
+                    sum(isinstance(row.get('contracts'), dict) for row in results) / total
+                    if any('contract_raw' in row for row in results) else ''
+                ),
+                "contract_valid_rate": (
+                    sum(row.get('contract_valid') is True for row in results) / total
+                    if any('contract_raw' in row for row in results) else ''
+                ),
                 "graph_parse_rate": (
                     sum(row.get("graph") is not None for row in graph_rows) / len(graph_rows)
                     if graph_rows else ""

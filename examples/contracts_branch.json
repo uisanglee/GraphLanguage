@@ -1,0 +1,49 @@
+{
+  "contract_version": "1.0",
+  "interface": {
+    "mode": "function",
+    "entrypoint": "combine_values",
+    "signature": "(values: list[int], use_product: bool) -> int"
+  },
+  "steps": [
+    {
+      "kind": "Branch",
+      "description": "Choose the product path if use_product is true, otherwise the sum path.",
+      "condition": "use_product",
+      "produces": {
+        "combined": "int"
+      },
+      "then": {
+        "steps": [
+          {
+            "kind": "Compute",
+            "description": "Return product of values with empty product 1; no mutation.",
+            "needs": [
+              "values"
+            ],
+            "produces": {
+              "product": "int"
+            }
+          }
+        ],
+        "return": "product"
+      },
+      "else": {
+        "steps": [
+          {
+            "kind": "Compute",
+            "description": "Return sum of values with empty sum 0; no mutation.",
+            "needs": [
+              "values"
+            ],
+            "produces": {
+              "total": "int"
+            }
+          }
+        ],
+        "return": "total"
+      }
+    }
+  ],
+  "return": "combined"
+}

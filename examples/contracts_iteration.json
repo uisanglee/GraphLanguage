@@ -1,0 +1,21 @@
+{
+  "contract_version": "1.0",
+  "interface": {
+    "mode": "function",
+    "entrypoint": "sum_positive_squares",
+    "signature": "(values: list[int]) -> int"
+  },
+  "steps": [
+    {
+      "kind": "Compute",
+      "description": "Return the sum of squares of strictly positive values; empty input gives zero. Traverse once without mutation.",
+      "needs": [
+        "values"
+      ],
+      "produces": {
+        "total": "int"
+      }
+    }
+  ],
+  "return": "total"
+}

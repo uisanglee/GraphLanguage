@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GraphIR named value contracts v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "interface", "steps", "return"],
+  "properties": {
+    "contract_version": {"const": "1.0"},
+    "interface": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mode", "entrypoint", "signature"],
+      "properties": {
+        "mode": {"enum": ["function", "stdio"]},
+        "entrypoint": {"type": ["string", "null"]},
+        "signature": {"type": ["string", "null"]}
+      }
+    },
+    "steps": {"type": "array", "items": {"$ref": "#/$defs/step"}},
+    "return": {"$ref": "#/$defs/name"}
+  },
+  "$defs": {
+    "name": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+    "program": {
+      "type": "object", "additionalProperties": false, "required": ["steps", "return"],
+      "properties": {
+        "steps": {"type": "array", "items": {"$ref": "#/$defs/step"}},
+        "return": {"$ref": "#/$defs/name"}
+      }
+    },
+    "step": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "description", "produces"],
+      "properties": {
+        "kind": {"enum": ["Compute", "Branch"]},
+        "description": {"type": "string", "minLength": 1},
+        "needs": {"type": "array", "items": {"$ref": "#/$defs/name"}},
+        "produces": {"type": "object", "additionalProperties": {"type": "string", "minLength": 1}},
+        "condition": {"$ref": "#/$defs/name"},
+        "then": {"$ref": "#/$defs/program"},
+        "else": {"$ref": "#/$defs/program"}
+      }
+    }
+  }
+}

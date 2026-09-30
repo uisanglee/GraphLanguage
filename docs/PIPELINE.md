@@ -1,5 +1,8 @@
 # GraphIR Core node generation pipeline
 
+For the new contract-only planner and automatic wiring, use the v9 configurations and see
+CONTRACT_GENERATION.md. Explicit graph generation below remains the v8 compatibility mode.
+
 The v8 default uses the compact generation profile described in COMPACT_GENERATION.md:
 Input, Output, Compute, Branch. Loops stay inside Compute. Extended Core support below is
 retained for existing graphs, not exposed by the default generation schema.

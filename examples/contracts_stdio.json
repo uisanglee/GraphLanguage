@@ -1,0 +1,21 @@
+{
+  "contract_version": "1.0",
+  "interface": {
+    "mode": "stdio",
+    "entrypoint": null,
+    "signature": null
+  },
+  "steps": [
+    {
+      "kind": "Compute",
+      "description": "Parse whitespace-separated integers from stdin and return their sum as decimal text without trailing newline; empty input gives 0.",
+      "needs": [
+        "stdin"
+      ],
+      "produces": {
+        "text": "str"
+      }
+    }
+  ],
+  "return": "text"
+}

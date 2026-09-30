@@ -64,6 +64,7 @@ def prepare(config: dict[str, Any], dry_run: bool) -> None:
                 "--input-dir", str(input_dir), "--output", str(requests),
                 "--benchmarks", *benchmarks,
                 "--num-demonstrations", str(condition.get("planner_demonstrations", 1)),
+                "--planner-format", condition.get('planner_format', 'graph'),
             ]
         if config.get("official_eval_only", True):
             command.append("--official-eval-only")
@@ -95,6 +96,7 @@ def generate(config: dict[str, Any], dry_run: bool) -> None:
                 "--validation-mode", condition.get("validation_mode", "full"),
                 "--num-code-demonstrations", str(condition.get("code_demonstrations", 1)),
                 "--synthesis-mode", condition.get('synthesis_mode', 'nodes'),
+                "--planner-format", condition.get('planner_format', 'graph'),
             ]
             if condition.get("high_level_plan", False):
                 command.append("--high-level-plan")

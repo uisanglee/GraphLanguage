@@ -1,0 +1,32 @@
+{
+  "contract_version": "1.0",
+  "interface": {
+    "mode": "function",
+    "entrypoint": "rank_packages",
+    "signature": "(packages: list[tuple[str, list[int]]], limit: int) -> list[str]"
+  },
+  "steps": [
+    {
+      "kind": "Compute",
+      "description": "For each (label, component_costs) package, produce (total_cost, label), retaining input order and allowing negative costs; do not mutate packages.",
+      "needs": [
+        "packages"
+      ],
+      "produces": {
+        "scored": "list[tuple[int, str]]"
+      }
+    },
+    {
+      "kind": "Compute",
+      "description": "Sort (total_cost, label) pairs by cost ascending with stable ties; return labels of at most max(0, limit) entries, empty if limit <= 0; do not mutate scored.",
+      "needs": [
+        "scored",
+        "limit"
+      ],
+      "produces": {
+        "labels": "list[str]"
+      }
+    }
+  ],
+  "return": "labels"
+}

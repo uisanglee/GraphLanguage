@@ -1,0 +1,92 @@
+[
+  {
+    "id": "contract-basic",
+    "interface": "function",
+    "benchmarks": [
+      "humaneval",
+      "mbpp",
+      "bigcodebench",
+      "livecodebench"
+    ],
+    "task": "Return the non-negative absolute difference between two numbers.",
+    "keywords": [
+      "number",
+      "difference",
+      "basic"
+    ],
+    "graph": "../examples/contracts_basic.json"
+  },
+  {
+    "id": "contract-iteration",
+    "interface": "function",
+    "benchmarks": [
+      "humaneval",
+      "mbpp",
+      "bigcodebench",
+      "livecodebench"
+    ],
+    "task": "Return the sum of squares of positive integers in values.",
+    "keywords": [
+      "iteration",
+      "sum",
+      "list",
+      "positive"
+    ],
+    "graph": "../examples/contracts_iteration.json"
+  },
+  {
+    "id": "contract-collection",
+    "interface": "function",
+    "benchmarks": [
+      "humaneval",
+      "mbpp",
+      "bigcodebench",
+      "livecodebench"
+    ],
+    "task": "Rank packages by total cost ascending with stable ties and return at most limit labels.",
+    "keywords": [
+      "sort",
+      "sorted",
+      "matrix",
+      "rows",
+      "rank",
+      "limit",
+      "tuple"
+    ],
+    "graph": "../examples/contracts_collection.json",
+    "structure": "collection_pipeline"
+  },
+  {
+    "id": "contract-branch",
+    "interface": "function",
+    "benchmarks": [
+      "humaneval",
+      "mbpp",
+      "bigcodebench",
+      "livecodebench"
+    ],
+    "task": "Expose independently editable product and sum paths selected by use_product.",
+    "keywords": [
+      "branch",
+      "alternative",
+      "paths",
+      "product",
+      "sum"
+    ],
+    "graph": "../examples/contracts_branch.json"
+  },
+  {
+    "id": "contract-stdio",
+    "interface": "stdio",
+    "benchmarks": [
+      "livecodebench"
+    ],
+    "task": "Read whitespace-separated integers from stdin and print their sum.",
+    "keywords": [
+      "stdin",
+      "stdout",
+      "sum"
+    ],
+    "graph": "../examples/contracts_stdio.json"
+  }
+]

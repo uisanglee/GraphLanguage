@@ -28,6 +28,7 @@ from validate_graph import validate_semantics
 from graphdsl_nodes import BOUNDARIES, node_request, check_node_source, compile_graph, node_demonstrations
 from inference_journal import JournalClient, run_identity
 from graphir_core import canonicalize_graph
+from graphir_contracts import compile_contracts, COMPILER_VERSION
 
 
 def make_chat_payload(
@@ -87,6 +88,21 @@ def parse_graph(
     schema_errors = [f"schema: {error}" for error in validate_schema(value, schema)]
     semantic_errors = [f"semantic: {error}" for error in validate_semantics(value)]
     return value, schema_errors, semantic_errors
+
+
+def parse_contracts(content, schema, task=None):
+    try:
+        value = json.loads(strip_fence(content))
+    except json.JSONDecodeError as error:
+        return None, None, [f'JSON parse error: {error}'], []
+    errors = validate_schema(value, schema)
+    if errors:
+        return value, None, ['schema: ' + e for e in errors], []
+    try:
+        graph = compile_contracts(value, task)
+    except (ValueError, TypeError, KeyError, SyntaxError) as error:
+        return value, None, [], [f'contract: {error}']
+    return value, graph, [], []
 
 
 class Client:
@@ -173,6 +189,7 @@ def main() -> None:
     parser.add_argument("--planner-model")
     parser.add_argument("--synthesizer-model")
     parser.add_argument('--synthesis-mode', choices=['nodes', 'whole'], default='nodes')
+    parser.add_argument('--planner-format', choices=['graph', 'contracts'], default='graph')
     parser.add_argument('--node-system-prompt', type=Path, default=Path('prompts/graphdsl_node_to_python.md'))
     parser.add_argument('--max-plan-tokens', type=int, default=2048)
     parser.add_argument('--max-node-tokens', type=int, default=4096)
@@ -186,7 +203,7 @@ def main() -> None:
     )
     parser.add_argument("--api-key", default=os.environ.get("OPENAI_API_KEY", ""))
     parser.add_argument("--code-system-prompt", type=Path, default=Path("prompts/graphdsl_to_python.md"))
-    parser.add_argument("--schema", type=Path, default=Path("schemas/graphir-compact.schema.json"))
+    parser.add_argument("--schema", type=Path)
     parser.add_argument(
         "--constraint-mode",
         choices=["response_format", "structured_outputs", "none"],
@@ -212,6 +229,7 @@ def main() -> None:
     parser.add_argument("--limit", type=int)
     parser.add_argument("--no-resume", action="store_true")
     args = parser.parse_args()
+    args.schema = args.schema or Path('schemas/graphir-contracts.schema.json' if args.planner_format == 'contracts' else 'schemas/graphir-compact.schema.json')
 
     planner_model = args.planner_model or args.model
     synthesizer_model = args.synthesizer_model or args.model
@@ -235,7 +253,11 @@ def main() -> None:
         json.dumps(schema, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
     settings = {k: v for k, v in vars(args).items() if k not in {'api_key','limit','no_resume'}}
+    if args.planner_format == 'graph':
+        settings.pop('planner_format')  # Preserve identities of existing v8 runs.
     settings.update(node_prompt=node_system, plan_prompt=plan_system, code_prompt=code_system, schema=schema_sha256)
+    if args.planner_format == 'contracts':
+        settings['contract_compiler'] = hashlib.sha256(Path(__file__).with_name('graphir_contracts.py').read_bytes()).hexdigest()
     run_identity(args.output, settings, args.input)
     if args.no_resume and args.output.exists() and args.output.stat().st_size:
         parser.error('--no-resume requires a fresh output path')
@@ -261,6 +283,8 @@ def main() -> None:
                 "synthesizer_prompt_sha256": code_prompt_sha256,
             }
             try:
+                if request.get('metadata', {}).get('planner_format', 'graph') != args.planner_format:
+                    raise ValueError('request planner format differs from pipeline; prepare matching requests')
                 task_key = hashlib.sha256(custom_id.encode()).hexdigest()
                 task_journal = args.output.parent / 'inference' / task_key
                 planner = JournalClient(planner_client, task_journal / 'planner')
@@ -286,7 +310,17 @@ def main() -> None:
                     schema=schema, constraint_mode=args.constraint_mode,
                 )
                 record["llm_calls"] += 1
-                graph, graph_schema_errors, graph_semantic_errors = parse_graph(graph_text, schema)
+                if args.planner_format == 'contracts':
+                    record['contract_raw'] = graph_text
+                    record['contract_compiler_version'] = COMPILER_VERSION
+                    contracts, graph, graph_schema_errors, graph_semantic_errors = parse_contracts(
+                        graph_text, schema, json.loads(request['messages'][-1]['content']))
+                    record['contracts'] = contracts
+                    record['contract_schema_errors'] = graph_schema_errors
+                    record['contract_compile_errors'] = graph_semantic_errors
+                    record['contract_valid'] = not (graph_schema_errors or graph_semantic_errors)
+                else:
+                    graph, graph_schema_errors, graph_semantic_errors = parse_graph(graph_text, schema)
                 graph_errors = graph_schema_errors + graph_semantic_errors
                 if args.validation_mode == "full":
                     graph_accepted = graph is not None and not graph_errors
@@ -296,7 +330,8 @@ def main() -> None:
                     graph_accepted = graph is not None
                 record.update(
                     {
-                        "graph_raw": graph_text,
+                        "graph_raw": (json.dumps(graph, ensure_ascii=False) if graph is not None else None) if args.planner_format == 'contracts' else graph_text,
+                        "planner_format": args.planner_format,
                         "graph": graph,
                         "graph_errors": graph_errors,
                         "graph_schema_errors": graph_schema_errors,

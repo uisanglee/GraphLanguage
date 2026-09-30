@@ -1,0 +1,22 @@
+{
+  "contract_version": "1.0",
+  "interface": {
+    "mode": "function",
+    "entrypoint": "absolute_distance",
+    "signature": "(a: float, b: float) -> float"
+  },
+  "steps": [
+    {
+      "kind": "Compute",
+      "description": "Return the absolute difference of a and b in O(1) time without mutation.",
+      "needs": [
+        "a",
+        "b"
+      ],
+      "produces": {
+        "distance": "float"
+      }
+    }
+  ],
+  "return": "distance"
+}

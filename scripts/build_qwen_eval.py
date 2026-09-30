@@ -97,9 +97,10 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input-dir", type=Path, default=Path("data/normalized"))
     parser.add_argument("--output", type=Path, default=Path("data/qwen/nl_to_graphdsl.jsonl"))
-    parser.add_argument("--system-prompt", type=Path, default=Path("prompts/nl_to_graphdsl.md"))
+    parser.add_argument('--planner-format', choices=['graph', 'contracts'], default='graph')
+    parser.add_argument("--system-prompt", type=Path)
     parser.add_argument(
-        "--demo-catalog", type=Path, default=Path("demonstrations/catalog.json")
+        "--demo-catalog", type=Path
     )
     parser.add_argument(
         "--num-demonstrations", type=int, default=1,
@@ -116,6 +117,9 @@ def main() -> None:
         help="Use published test splits (notably MBPP task IDs 11-510).",
     )
     args = parser.parse_args()
+
+    args.system_prompt = args.system_prompt or Path('prompts/nl_to_contracts.md' if args.planner_format == 'contracts' else 'prompts/nl_to_graphdsl.md')
+    args.demo_catalog = args.demo_catalog or Path('demonstrations/contracts_catalog.json' if args.planner_format == 'contracts' else 'demonstrations/catalog.json')
 
     system = args.system_prompt.read_text(encoding="utf-8").strip()
     system_sha256 = hashlib.sha256(system.encode("utf-8")).hexdigest()
@@ -155,6 +159,7 @@ def main() -> None:
                         "prompt_variant": variant,
                         "demonstration_ids": [item["id"] for item in demonstrations],
                         "planner_prompt_sha256": system_sha256,
+                        **({'planner_format': 'contracts'} if args.planner_format == 'contracts' else {}),
                     },
                 }
                 output.write(json.dumps(request, ensure_ascii=False, separators=(",", ":")) + "\n")
