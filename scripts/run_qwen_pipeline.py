@@ -301,11 +301,19 @@ def main() -> None:
                     graph_messages[-1]['content'] = json.dumps(task, ensure_ascii=False)
                     record['fixed_interface'] = task.get('fixed_interface')
                     record['planner_schema_sha256'] = hashlib.sha256(json.dumps(request_schema, sort_keys=True).encode()).hexdigest()
+                    public = request.get('preserved_public_examples', [])
+                    if public:
+                        task['preserved_public_examples'] = public
+                        record['preserved_public_example_count'] = len(public)
+                        record['preserved_public_examples_sha256'] = hashlib.sha256(
+                            json.dumps(public, sort_keys=True, separators=(',', ':')).encode()
+                        ).hexdigest()
                 if args.high_level_plan:
                     # Keep the task used for shared GraphIR/Parsel plans identical.
                     plan_message = request['messages'][-1]
                     if task is not None:
-                        plan_task = {k: v for k, v in task.items() if k not in {'fixed_interface', 'available_inputs'}}
+                        plan_task = {k: v for k, v in task.items() if k not in {
+                            'fixed_interface', 'available_inputs', 'preserved_public_examples'}}
                         plan_message = {'role': 'user', 'content': json.dumps(plan_task, ensure_ascii=False)}
                     plan_client = JournalClient(planner_client, (args.plans_dir or args.output.parent / 'plans') / task_key)
                     plan_text, plan_timing = plan_client.complete(
@@ -372,10 +380,11 @@ def main() -> None:
                             demo_messages, demo_ids = node_demonstrations(
                                 node, args.num_code_demonstrations, dialect=dialect
                             )
+                            node_payload = node_request(executable_graph, node)
                             raw_code, inference = synthesizer.complete([
                                 {'role':'system', 'content':node_system},
                                 *demo_messages,
-                                {'role':'user', 'content':json.dumps(node_request(executable_graph, node), ensure_ascii=False)},
+                                {'role':'user', 'content':json.dumps(node_payload, ensure_ascii=False)},
                             ], args.max_node_tokens, args.temperature)
                             record['llm_calls'] += 1
                             code = strip_fence(raw_code)
@@ -383,6 +392,11 @@ def main() -> None:
                             node_result = dict(
                                 code=code, errors=errors, inference=inference,
                                 demonstration_ids=demo_ids,
+                                public_example_context={
+                                    'node_io': len(node_payload.get('node_examples', [])),
+                                    'whole_program': len(node_payload.get('program_examples', [])),
+                                    'raw_evidence': len(node_payload.get('public_example_evidence', [])),
+                                },
                             )
                             if code != raw_code.strip():
                                 node_result['raw_code'] = raw_code

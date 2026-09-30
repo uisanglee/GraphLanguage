@@ -1,0 +1,44 @@
+{
+  "input_dir": "data/normalized",
+  "benchmarks": [
+    "livecodebench"
+  ],
+  "official_eval_only": true,
+  "generation": {
+    "base_url": "http://localhost:8000/v1",
+    "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+    "temperature": 0
+  },
+  "conditions": [
+    {
+      "name": "direct-python-1x1",
+      "kind": "direct"
+    },
+    {
+      "name": "graphir-contracts-direct-1x1",
+      "kind": "graphdsl",
+      "planner_demonstrations": 2,
+      "code_demonstrations": 1,
+      "synthesis_mode": "nodes",
+      "planner_format": "contracts"
+    },
+    {
+      "name": "graphir-contracts-plan-1x1",
+      "kind": "graphdsl",
+      "planner_demonstrations": 2,
+      "code_demonstrations": 1,
+      "synthesis_mode": "nodes",
+      "high_level_plan": true,
+      "planner_format": "contracts"
+    }
+  ],
+  "evaluation": {
+    "workers": 2,
+    "official_timeout": 7200,
+    "build_functional_image": false,
+    "run_official": true,
+    "livecodebench_image": "graphdsl-livecodebench:release-v6"
+  },
+  "name": "qwen7b-graphir-livecodebench-full-v14",
+  "output_dir": "outputs/qwen7b-graphir-livecodebench-full-v14"
+}

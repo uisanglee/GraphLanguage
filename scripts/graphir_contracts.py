@@ -13,7 +13,7 @@ from schema_validation import load_schema, validate_schema
 from validate_graph import validate
 
 SCHEMA = Path(__file__).resolve().parents[1] / 'schemas/graphir-contracts.schema.json'
-COMPILER_VERSION = 'contracts-2-fixed-interface'
+COMPILER_VERSION = 'contracts-4-livecodebench-public-examples'
 
 
 def identifier(name):
@@ -44,7 +44,10 @@ def signature_info(interface):
     if len(fn.body) != 1 or not isinstance(fn.body[0], ast.Pass):
         raise ValueError('signature may not contain a body')
     params = {}
-    for arg in fn.args.posonlyargs + fn.args.args + fn.args.kwonlyargs:
+    public_args = fn.args.posonlyargs + fn.args.args
+    if len(parts) == 2 and public_args and public_args[0].arg in {'self', 'cls'}:
+        public_args = public_args[1:]
+    for arg in public_args + fn.args.kwonlyargs:
         identifier(arg.arg)
         params[arg.arg] = normalize_type(ast.unparse(arg.annotation)) if arg.annotation else 'Any'
     if fn.args.vararg:
@@ -206,7 +209,41 @@ def compile_contracts(document, task=None):
     env = {name: (typ, name + '.value') for name, typ in params.items()}
     compiled = scope(document, env, root=True, expected=return_type)
     inputs = [dict(id=name, kind='Input', description=f'Public input {name}.', inputs={}, outputs={'value': typ}) for name, typ in params.items()]
-    graph = dict(graphir_version='0.2.0', interface=interface, nodes=inputs + compiled['nodes'], edges=compiled['edges'])
+    graph_examples = []
+    preserved = copy.deepcopy((task or {}).get('preserved_public_examples', []))
+    parameter_names = list(params)
+    for example in preserved:
+        if interface['mode'] == 'stdio' and example.get('io_mode') == 'stdio':
+            graph_examples.append({
+                'inputs': {'stdin': example.get('stdin', '')},
+                'outputs': {'stdout': example.get('expected_stdout', '')},
+                'description': example.get('raw_source', example.get('id', 'public example')),
+            })
+            continue
+        call = example.get('call', {})
+        if not example.get('structured') or 'expected_return' not in example:
+            continue
+        called = (call.get('entrypoint') or '').split('.')[-1]
+        if called != (interface.get('entrypoint') or '').split('.')[-1]:
+            continue
+        args, kwargs = call.get('args', []), call.get('kwargs', {})
+        if len(args) > len(parameter_names) or any(name not in params for name in kwargs):
+            continue
+        bound = dict(zip(parameter_names, args))
+        if set(bound) & set(kwargs):
+            continue
+        bound.update(kwargs)
+        graph_examples.append({
+            'inputs': bound,
+            'outputs': {'return': example.get('expected_return')},
+            'description': example.get('raw_source', example.get('id', 'public example')),
+        })
+    graph = dict(
+        graphir_version='0.2.0', interface=interface,
+        nodes=inputs + compiled['nodes'], edges=compiled['edges'],
+        **({'examples': graph_examples} if graph_examples else {}),
+        **({'metadata': {'preserved_public_examples': preserved}} if preserved else {}),
+    )
     errors = validate(graph)
     if errors:
         raise ValueError('; '.join(errors))

@@ -1,0 +1,43 @@
+{
+  "name": "qwen7b-graphir-examples-ablation-smoke-v13",
+  "input_dir": "data/normalized",
+  "output_dir": "outputs/qwen7b-graphir-examples-ablation-smoke-v13",
+  "benchmarks": [
+    "humaneval",
+    "mbpp"
+  ],
+  "official_eval_only": true,
+  "generation": {
+    "base_url": "http://localhost:8000/v1",
+    "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+    "temperature": 0,
+    "limit": 3
+  },
+  "conditions": [
+    {
+      "name": "graphir-contract-only-direct-1x1",
+      "kind": "graphdsl",
+      "planner_demonstrations": 2,
+      "code_demonstrations": 1,
+      "synthesis_mode": "nodes",
+      "planner_format": "contracts",
+      "preserve_public_examples": false
+    },
+    {
+      "name": "graphir-preserved-examples-direct-1x1",
+      "kind": "graphdsl",
+      "planner_demonstrations": 2,
+      "code_demonstrations": 1,
+      "synthesis_mode": "nodes",
+      "planner_format": "contracts",
+      "preserve_public_examples": true
+    }
+  ],
+  "evaluation": {
+    "workers": 2,
+    "functional_timeout": 5,
+    "functional_memory_mb": 512,
+    "build_functional_image": true,
+    "run_official": false
+  }
+}

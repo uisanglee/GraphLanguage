@@ -1,5 +1,65 @@
 # Named contracts and deterministic graph construction (v9)
 
+## LiveCodeBench public I/O (v14)
+
+LiveCodeBench public cases now use the same immutable example sidecar as HumanEval/MBPP.
+LeetCode `functional` cases are decoded one argument per line using JSON first and Python literal
+syntax second; no expression is executed. The repaired starter method signature maps those values
+to public parameters while excluding implicit `self`/`cls` from GraphIR Input nodes. AtCoder and
+Codeforces `stdin` cases preserve input/output strings exactly, including newlines, as
+`stdin`/`stdout` graph examples. Any future non-literal functional case falls back to raw evidence.
+
+Across the checked normalized LiveCodeBench corpus, 1,054/1,055 tasks expose 2,762 public cases:
+1,095 functional and 1,667 stdin. All currently parse structurally; the one task without public
+cases retains the previous prompt shape. Reference solutions and official private tests are not
+used. Representative method and stdio contracts, exact node-example routing, and raw fallback are
+covered by local tests.
+
+```sh
+python scripts/run_experiments.py --config experiments/graphir_livecodebench_smoke_v14.json --stage all
+python scripts/run_experiments.py --config experiments/graphir_livecodebench_full_v14.json --stage all
+```
+
+These configurations compare direct Python with GraphIR Direct/Plan and use the existing official
+LiveCodeBench evaluator image. The full run contains all 1,055 normalized tasks.
+
+## Preserved public examples for node synthesis (v13)
+
+GraphIR contract requests now carry original public examples in an immutable request sidecar.
+They are extracted with Python AST/doctest parsing only; submitted expressions are never run.
+Literal calls and expected values become program-boundary `graph.examples`. The exact original
+assert/doctest text is also retained in graph metadata, so JSON conversion does not hide Python
+tuple/list spelling. Examples that cannot be reduced to literals remain raw evidence rather than
+being guessed or discarded. Reference solutions, challenge tests, and hidden evaluator tests are
+never read by this path.
+
+The sidecar is not duplicated in the NL planner message: the original task already contains its
+public examples. After deterministic graph construction, a graph with exactly one synthesized
+node receives exact `node_examples`. In a multi-node graph, only a node feeding the public Output
+receives `program_examples`, explicitly marked as whole-program evidence rather than local ABI
+values. Non-literal evidence uses `public_example_evidence`. Intermediate expected values are never
+invented. With no public examples, all three fields are omitted and the previous prompt shape is
+preserved. UI clients may render `graph.examples` as virtual ExampleInput/ExpectedOutput nodes;
+they are constraints, not executable data-flow nodes.
+
+This remains 1x1: examples guide the single synthesis attempt and may be evaluated afterward, but
+there is no selection, retry, repair, or hidden-test feedback. Parsel is unchanged. For an ablation,
+set `"preserve_public_examples": false` on a GraphIR condition; request preparation then passes
+`--no-preserve-public-examples`.
+
+Use fresh v13 outputs:
+
+```sh
+python scripts/run_experiments.py --config experiments/parsel_graphdsl_smoke_v13.json --stage all
+python scripts/run_experiments.py --config experiments/parsel_graphdsl_humaneval_v13.json --stage all
+```
+
+The focused smoke ablation compares contract-only against preserved-example synthesis:
+
+```sh
+python scripts/run_experiments.py --config experiments/graphir_examples_ablation_smoke_v13.json --stage all
+```
+
 ## Evaluation fixes and contract guards (v11)
 
 HumanEval evaluation now preserves public starter helpers/imports but removes the target stub.

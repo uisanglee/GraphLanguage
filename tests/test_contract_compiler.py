@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from graphir_contracts import compile_contracts, signature_info, SCHEMA, fixed_interface, prepare_contract_task, contract_schema
 from graphir_core import canonicalize_graph
-from graphdsl_nodes import compile_graph, symbol, BOUNDARIES
+from graphdsl_nodes import compile_graph, symbol, BOUNDARIES, node_request
 from schema_validation import load_schema, validate_schema
 from validate_graph import validate
 from run_qwen_pipeline import parse_contracts
@@ -29,6 +29,85 @@ def step(description, needs, produces):
 
 
 class ContractCompiler(unittest.TestCase):
+    def test_preserved_examples_compile_and_reach_synthesis_at_correct_scope(self):
+        public = [{
+            'id': 'public_0',
+            'call': {'entrypoint': 'absolute_distance', 'args': [2.0, 7.0], 'kwargs': {}},
+            'expected_return': 5.0,
+            'raw_source': 'assert absolute_distance(2.0, 7.0) == 5.0',
+            'provenance': 'fixture.public',
+            'structured': True,
+        }]
+        task = dict(entrypoint='absolute_distance', interface_mode='function',
+                    starter_code='def absolute_distance(a: float, b: float) -> float:\n    pass',
+                    preserved_public_examples=public)
+        graph = compile_contracts(example('basic'), task)
+        self.assertEqual(graph['examples'][0]['inputs'], {'a': 2.0, 'b': 7.0})
+        self.assertEqual(graph['examples'][0]['outputs'], {'return': 5.0})
+        canonical = canonicalize_graph(graph)
+        compute = next(n for n in canonical['nodes'] if n['kind'] == 'Compute')
+        request = node_request(canonical, compute)
+        self.assertEqual(request['node_examples'][0]['inputs'], {'a': 2.0, 'b': 7.0})
+        self.assertEqual(request['node_examples'][0]['outputs'], {'distance': 5.0})
+        self.assertEqual(request['node_examples'][0]['scope'], 'exact_node_io')
+        self.assertIn('absolute_distance', request['node_examples'][0]['raw_source'])
+
+        multi = example('basic')
+        multi['steps'] = [
+            step('Add the values.', ['a', 'b'], {'total': 'float'}),
+            step('Return absolute total.', ['total'], {'distance': 'float'}),
+        ]
+        graph = canonicalize_graph(compile_contracts(multi, task))
+        computes = [n for n in graph['nodes'] if n['kind'] == 'Compute']
+        first = node_request(graph, computes[0])
+        self.assertNotIn('node_examples', first)
+        self.assertNotIn('program_examples', first)
+        final = node_request(graph, computes[1])
+        self.assertNotIn('node_examples', final)
+        self.assertEqual(final['program_examples'][0]['expected_return'], 5.0)
+        self.assertEqual(final['program_examples'][0]['scope'], 'whole_program_acceptance')
+
+    def test_no_public_examples_do_not_change_node_request_shape(self):
+        graph = canonicalize_graph(compile_contracts(example('basic')))
+        compute = next(n for n in graph['nodes'] if n['kind'] == 'Compute')
+        request = node_request(graph, compute)
+        self.assertNotIn('node_examples', request)
+        self.assertNotIn('program_examples', request)
+
+    def test_unstructured_public_example_is_preserved_as_evidence_only(self):
+        task = dict(entrypoint='absolute_distance', interface_mode='function',
+                    starter_code='def absolute_distance(a: float, b: float) -> float:\n    pass',
+                    preserved_public_examples=[{
+                        'id': 'public_0', 'raw_source': '>>> absolute_distance(make_a(), 2)\n3',
+                        'provenance': 'fixture.doctest', 'structured': False,
+                    }])
+        graph = canonicalize_graph(compile_contracts(example('basic'), task))
+        self.assertEqual(graph['examples'], [])
+        compute = next(n for n in graph['nodes'] if n['kind'] == 'Compute')
+        request = node_request(graph, compute)
+        self.assertNotIn('node_examples', request)
+        self.assertEqual(request['public_example_evidence'][0]['scope'],
+                         'whole_program_public_evidence')
+        self.assertIn('make_a()', request['public_example_evidence'][0]['raw_source'])
+
+    def test_stdio_public_pair_becomes_exact_node_example(self):
+        public = [{
+            'id': 'public_0', 'io_mode': 'stdio', 'stdin': '1 2 3\n',
+            'expected_stdout': '6\n', 'raw_source': 'Input:\n1 2 3\nOutput:\n6\n',
+            'provenance': 'fixture.public', 'structured': True,
+        }]
+        task = dict(interface_mode='stdio', entrypoint=None, starter_code='',
+                    preserved_public_examples=public)
+        graph = compile_contracts(example('stdio'), task)
+        self.assertEqual(graph['examples'][0]['inputs'], {'stdin':'1 2 3\n'})
+        self.assertEqual(graph['examples'][0]['outputs'], {'stdout':'6\n'})
+        canonical = canonicalize_graph(graph)
+        compute = next(n for n in canonical['nodes'] if n['kind'] == 'Compute')
+        request = node_request(canonical, compute)
+        self.assertEqual(request['node_examples'][0]['inputs'], {'stdin':'1 2 3\n'})
+        self.assertEqual(request['node_examples'][0]['outputs'], {'text':'6\n'})
+
+
     def test_schema_discriminates_branch_and_compute(self):
         schema = load_schema(SCHEMA)
         for name in ['basic', 'branch']:
@@ -151,6 +230,7 @@ class ContractCompiler(unittest.TestCase):
         self.assertEqual(fixed['entrypoint'], 'Solution.run')
         self.assertIn('flag: bool=False', fixed['signature'])
         self.assertEqual(signature_info(fixed)[0]['items'], 'list[int]')
+        self.assertNotIn('self', signature_info(fixed)[0])
         self.assertIsNone(fixed_interface(dict(task, starter_code='')))
         self.assertEqual(contract_schema(load_schema(SCHEMA), dict(task, starter_code='')), load_schema(SCHEMA))
 
@@ -158,14 +238,21 @@ class ContractCompiler(unittest.TestCase):
         doc = example('basic'); del doc['interface']
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp)
+            starter = ('def absolute_distance(a: float, b: float) -> float:\n'
+                       '    """Return the distance.\n'
+                       '    >>> absolute_distance(2.0, 7.0)\n'
+                       '    5.0\n'
+                       '    """\n')
             task = dict(id='humaneval:fixture', benchmark='humaneval', split='test', interface='function',
-                        entrypoint='absolute_distance', starter_code='def absolute_distance(a: float, b: float) -> float:\n    pass',
-                        prompt={'primary':'Return absolute difference of a and b.'})
+                        entrypoint='absolute_distance', starter_code=starter,
+                        prompt={'primary': starter})
             (directory/'humaneval.jsonl').write_text(json.dumps(task)+'\n')
             requests, output = directory/'requests.jsonl', directory/'results.jsonl'
             argv = ['builder', '--input-dir', tmp, '--output', str(requests), '--benchmarks', 'humaneval', '--planner-format', 'contracts', '--num-demonstrations', '2']
             with patch.object(sys, 'argv', argv): build_qwen_eval.main()
             request = json.loads(requests.read_text())
+            self.assertEqual(request['metadata']['preserved_public_example_count'], 1)
+            self.assertNotIn('preserved_public_examples', json.loads(request['messages'][-1]['content']))
             self.assertIn('fixed_interface', json.loads(request['messages'][-1]['content']))
             for message in request['messages']:
                 if message['role'] == 'assistant':
@@ -176,6 +263,8 @@ class ContractCompiler(unittest.TestCase):
                     self.assertEqual(json.loads(messages[-1]['content'])['available_inputs'], {'a':'float','b':'float'})
                     return json.dumps(doc), {'usage':{'total_tokens':1}}
                 payload = json.loads(messages[-1]['content'])
+                self.assertEqual(payload['node_examples'][0]['inputs'], {'a':2.0,'b':7.0})
+                self.assertEqual(payload['node_examples'][0]['outputs'], {'distance':5.0})
                 return payload['signature'] + "\n    return {'distance': abs(inputs['a'] - inputs['b'])}", {'usage':{'total_tokens':1}}
             argv = ['pipeline', '--input', str(requests), '--output', str(output), '--model', 'fixture', '--planner-format', 'contracts', '--num-code-demonstrations', '0']
             with patch.object(sys, 'argv', argv), patch.object(run_qwen_pipeline.Client, 'complete', autospec=True, side_effect=complete):
@@ -183,6 +272,10 @@ class ContractCompiler(unittest.TestCase):
             row = json.loads(output.read_text())
             self.assertTrue(row['artifact_valid'])
             self.assertEqual(row['graph']['interface'], row['fixed_interface'])
+            self.assertEqual(row['preserved_public_example_count'], 1)
+            self.assertEqual(row['graph']['examples'][0]['outputs'], {'return':5.0})
+            self.assertNotIn('assert absolute_distance(2.0, 7.0)', row['generated_artifact'])
+            self.assertEqual(row['node_results']['node_0']['public_example_context']['node_io'], 1)
 
     def test_nested_branch_captures_and_lazy_execution(self):
         doc = example('branch')

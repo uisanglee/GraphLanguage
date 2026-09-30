@@ -3,8 +3,10 @@ from __future__ import annotations
 import copy
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,11 +18,13 @@ from schema_validation import load_schema  # noqa: E402
 from validate_artifact import validate_artifact, strip_fence  # noqa: E402
 from validate_graph import validate  # noqa: E402
 from export_predictions import export_functional  # noqa: E402
-from build_qwen_eval import is_official_evaluation_task, safe_task  # noqa: E402
+from build_qwen_eval import is_official_evaluation_task, safe_task, normalize_interface  # noqa: E402
+from public_examples import preserved_public_examples  # noqa: E402
 from run_qwen_pipeline import with_high_level_plan  # noqa: E402
 from build_parsel_eval import load_demonstrations, demonstration_messages  # noqa: E402
 from official_results import inference_totals  # noqa: E402
 from run_safe_functional_eval import evaluate_one  # noqa: E402
+import build_qwen_eval  # noqa: E402
 
 
 class PipelineComponentsTest(unittest.TestCase):
@@ -132,6 +136,87 @@ class PipelineComponentsTest(unittest.TestCase):
         task = safe_task(record, "prompt", "primary")
         self.assertEqual(task["task"], "prompt")
         self.assertNotIn("reference", task)
+
+    def test_literal_public_examples_are_preserved_without_execution(self) -> None:
+        mbpp = {
+            'benchmark': 'mbpp',
+            'public_tests': [
+                "assert top(['a', 'b', 'a']) == [('a', 2), ('b', 1)]",
+                "assert top(make_input()) == [('unsafe', 1)]",
+            ],
+        }
+        examples = preserved_public_examples(mbpp)
+        self.assertEqual(len(examples), 2)
+        self.assertEqual(examples[0]['call']['entrypoint'], 'top')
+        self.assertEqual(examples[0]['call']['args'], [['a', 'b', 'a']])
+        self.assertEqual(examples[0]['expected_return'], [['a', 2], ['b', 1]])
+        self.assertIn("('a', 2)", examples[0]['raw_source'])
+        self.assertFalse(examples[1]['structured'])
+        self.assertIn('make_input()', examples[1]['raw_source'])
+
+        humaneval = {
+            'benchmark': 'humaneval', 'entrypoint': 'twice', 'starter_code': '',
+            'prompt': {'primary': 'def twice(x):\n    """>>> twice(3)\n    6\n    """\n'},
+        }
+        examples = preserved_public_examples(humaneval)
+        self.assertEqual(examples[0]['call']['args'], [3])
+        self.assertEqual(examples[0]['expected_return'], 6)
+
+        functional = normalize_interface({
+            'benchmark': 'livecodebench', 'interface': 'stdio', 'entrypoint': None,
+            'starter_code': 'class Solution:\n    def solve(self, nums: list[int], k: int) -> int:\n        ',
+            'public_tests': [{'input': '[1, 2, 3]\n2', 'output': '5',
+                              'testtype': 'functional'}],
+        })
+        examples = preserved_public_examples(functional)
+        self.assertEqual(functional['entrypoint'], 'Solution.solve')
+        self.assertEqual(examples[0]['call']['args'], [[1, 2, 3], 2])
+        self.assertEqual(examples[0]['expected_return'], 5)
+
+        stdio = {
+            'benchmark': 'livecodebench', 'interface': 'stdio', 'entrypoint': None,
+            'public_tests': [{'input': '3\n1 2 3\n', 'output': '6\n', 'testtype': 'stdin'}],
+        }
+        examples = preserved_public_examples(stdio)
+        self.assertEqual(examples[0]['stdin'], '3\n1 2 3\n')
+        self.assertEqual(examples[0]['expected_stdout'], '6\n')
+        self.assertTrue(examples[0]['structured'])
+
+        malformed = dict(functional, public_tests=[{
+            'input': 'make_input()', 'output': 'unknown()', 'testtype': 'functional'}])
+        example = preserved_public_examples(malformed)[0]
+        self.assertFalse(example['structured'])
+        self.assertIn('make_input()', example['raw_source'])
+
+    def test_graphir_request_carries_examples_as_immutable_sidecar(self) -> None:
+        record = {
+            'id': 'mbpp:13', 'benchmark': 'mbpp', 'split': 'test',
+            'interface': 'function', 'entrypoint': None, 'starter_code': '',
+            'prompt': {'primary': "Solve it.\nassert top(['a']) == [('a', 1)]"},
+            'public_tests': ["assert top(['a']) == [('a', 1)]"],
+            'metadata': {'task_id': 13},
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'mbpp.jsonl').write_text(json.dumps(record) + '\n')
+            output = root / 'requests.jsonl'
+            argv = ['builder', '--input-dir', directory, '--output', str(output),
+                    '--benchmarks', 'mbpp', '--planner-format', 'contracts',
+                    '--num-demonstrations', '0', '--official-eval-only']
+            with patch.object(sys, 'argv', argv):
+                build_qwen_eval.main()
+            request = json.loads(output.read_text())
+            task = json.loads(request['messages'][-1]['content'])
+            self.assertNotIn('preserved_public_examples', task)
+            self.assertEqual(request['preserved_public_examples'][0]['expected_return'], [['a', 1]])
+            self.assertEqual(request['metadata']['preserved_public_example_count'], 1)
+
+            argv.append('--no-preserve-public-examples')
+            with patch.object(sys, 'argv', argv):
+                build_qwen_eval.main()
+            request = json.loads(output.read_text())
+            self.assertNotIn('preserved_public_examples', request)
+            self.assertEqual(request['metadata']['preserved_public_example_count'], 0)
 
     def test_plan_is_added_to_task_object(self) -> None:
         messages = [

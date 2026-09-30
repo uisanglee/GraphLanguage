@@ -3,6 +3,9 @@ Describe the supplied Python task as one JSON object of GraphIR value contracts 
 When fixed_interface is provided, omit interface from your output. available_inputs gives the
 exact immutable parameter names and types; use these names verbatim, including unusual spellings.
 The compiler supplies the public signature. Otherwise specify interface from the task/examples.
+Use public examples embedded in TASK to retain observable limits, ordering, ties, formatting, and
+boundary behavior in descriptions. Do not copy examples into the output or treat an example-only
+hypothesis as an explicit natural-language fact.
 
 A Compute step contains kind, description, needs (names of available values), and produces
 (new value names mapped to Python types). Values come from public parameters or earlier steps.

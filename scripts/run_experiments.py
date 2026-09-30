@@ -66,6 +66,8 @@ def prepare(config: dict[str, Any], dry_run: bool) -> None:
                 "--num-demonstrations", str(condition.get("planner_demonstrations", 1)),
                 "--planner-format", condition.get('planner_format', 'graph'),
             ]
+            if condition.get('preserve_public_examples', True) is False:
+                command.append('--no-preserve-public-examples')
         if config.get("official_eval_only", True):
             command.append("--official-eval-only")
         run(command, dry_run)

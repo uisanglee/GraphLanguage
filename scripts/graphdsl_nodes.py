@@ -170,7 +170,7 @@ def validate_structure(graph: dict) -> list[str]:
 
 
 def node_request(graph: dict, node: dict) -> dict:
-    """No task text, other implementations, or whole-graph description is exposed."""
+    """Expose local contracts plus immutable public evidence when applicable."""
     by_id = {n["id"]: n for n in graph["nodes"]}
     incoming = []
     for edge in graph["edges"]:
@@ -193,7 +193,7 @@ def node_request(graph: dict, node: dict) -> dict:
             "outputs": [n for n in members if n["kind"] == "RegionOutput"],
             "contracts": [{"id": n["id"], "description": n["description"]} for n in members],
         }
-    return {
+    request = {
         "dialect": "core-0.2" if graph.get("metadata", {}).get("graphir_core_version") else "legacy-0.1",
         "signature": f"def {symbol(node['id'])}(inputs, regions):",
         "return_template": 'return {' + ', '.join(repr(p['id']) + ': <' + p['id'] + '>' for p in node['outputs']) + '}',
@@ -203,6 +203,74 @@ def node_request(graph: dict, node: dict) -> dict:
                          for p in node['inputs']},
         "region_callbacks": region_contracts,
     }
+    examples = graph.get('examples') or []
+    preserved = graph.get('metadata', {}).get('preserved_public_examples', [])
+    if not examples and not preserved:
+        return request
+    synthesized = [n for n in graph['nodes'] if n['kind'] not in BOUNDARIES]
+    exact = len(synthesized) == 1 and synthesized[0]['id'] == node['id']
+    input_routes = {}
+    if exact:
+        for edge in graph['edges']:
+            if edge['to']['node'] != node['id']:
+                continue
+            source = by_id[edge['from']['node']]
+            if source['kind'] != 'Input':
+                exact = False
+                break
+            parameter = source.get('config', {}).get('parameter')
+            if source.get('config', {}).get('mode') == 'stdin':
+                parameter = 'stdin'
+            if not isinstance(parameter, str):
+                exact = False
+                break
+            input_routes[edge['to']['port']] = parameter
+        exact = exact and set(input_routes) == {p['id'] for p in node['inputs']}
+    output_routes = []
+    for edge in graph['edges']:
+        if edge['from']['node'] == node['id'] and by_id[edge['to']['node']]['kind'] == 'Output':
+            output_routes.append(edge['from']['port'])
+    exact = exact and len(output_routes) == 1
+    evidence_by_source = {item.get('raw_source'): item for item in preserved}
+    observable = 'stdout' if graph.get('interface', {}).get('mode') == 'stdio' else 'return'
+    if exact and examples:
+        request['node_examples'] = []
+        for example in examples:
+            item = {
+                'inputs': {local: example['inputs'][public]
+                           for local, public in input_routes.items() if public in example['inputs']},
+                'outputs': {output_routes[0]: example.get('outputs', {}).get(observable)},
+                'scope': 'exact_node_io',
+            }
+            evidence = evidence_by_source.get(example.get('description'))
+            if evidence:
+                item['raw_source'] = evidence.get('raw_source', '')
+                item['provenance'] = evidence.get('provenance')
+            request['node_examples'].append(item)
+    elif output_routes and examples:
+        # These constrain the composed program, not this node's runtime ABI.
+        request['program_examples'] = []
+        for example in examples:
+            item = {
+                'program_inputs': example.get('inputs', {}),
+                'scope': 'whole_program_acceptance',
+            }
+            item['expected_' + observable] = example.get('outputs', {}).get(observable)
+            evidence = evidence_by_source.get(example.get('description'))
+            if evidence:
+                item['raw_source'] = evidence.get('raw_source', '')
+                item['provenance'] = evidence.get('provenance')
+            request['program_examples'].append(item)
+    if output_routes:
+        materialized_sources = {example.get('description') for example in examples}
+        raw_only = [
+            {'raw_source': item.get('raw_source', ''),
+             'provenance': item.get('provenance'), 'scope': 'whole_program_public_evidence'}
+            for item in preserved if item.get('raw_source') not in materialized_sources
+        ]
+        if raw_only:
+            request['public_example_evidence'] = raw_only
+    return request
 
 
 def check_node_source(source: str, node: dict, graph: dict | None = None) -> list[str]:
@@ -360,9 +428,16 @@ def compile_graph(graph: dict, implementations: dict[str, str]) -> str:
     for edge in graph["edges"]:
         incoming.setdefault((edge['to']['node'], edge['to']['port']), []).append(
             (edge['from']['node'], edge['from']['port']))
+    # Examples are synthesis-time evidence and remain in the GraphIR result/UI.
+    # They are not runtime state and should not bloat the emitted Python module.
+    runtime_graph = dict(graph, examples=[])
+    runtime_graph['metadata'] = {
+        key: value for key, value in graph.get('metadata', {}).items()
+        if key != 'preserved_public_examples'
+    }
     source = "from __future__ import annotations\n\n"
     source += "\n\n".join(f"# graphdsl:{nid}\n{code}" for nid, code in implementations.items())
-    source += f"\n\n_gd_graph = {graph!r}\n_gd_orders = {orders!r}\n_gd_incoming = {incoming!r}\n"
+    source += f"\n\n_gd_graph = {runtime_graph!r}\n_gd_orders = {orders!r}\n_gd_incoming = {incoming!r}\n"
     source += "_gd_functions = {" + ",".join(f"{nid!r}: {symbol(nid)}" for nid in implementations) + "}\n"
     source += '\n' + (Path(__file__).parent / 'graphir_types.py').read_text() + '\n'
     source += RUNTIME

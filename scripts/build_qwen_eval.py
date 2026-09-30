@@ -12,6 +12,7 @@ from typing import Any, Iterator
 
 from retrieve_demonstrations import load_catalog, planner_demo_messages, retrieve
 from graphir_contracts import prepare_contract_task
+from public_examples import preserved_public_examples
 
 
 def iter_records(input_dir: Path, selected: set[str] | None) -> Iterator[dict[str, Any]]:
@@ -117,6 +118,10 @@ def main() -> None:
         "--official-eval-only", action="store_true",
         help="Use published test splits (notably MBPP task IDs 11-510).",
     )
+    parser.add_argument(
+        '--preserve-public-examples', action=argparse.BooleanOptionalAction, default=True,
+        help='Attach literal original public examples to contract tasks (default: enabled).',
+    )
     args = parser.parse_args()
 
     args.system_prompt = args.system_prompt or Path('prompts/nl_to_contracts.md' if args.planner_format == 'contracts' else 'prompts/nl_to_graphdsl.md')
@@ -139,6 +144,7 @@ def main() -> None:
                 task = safe_task(record, prompt_text, variant)
                 if args.planner_format == 'contracts':
                     task = prepare_contract_task(task)
+                    public = preserved_public_examples(record) if args.preserve_public_examples else []
                 demonstrations = retrieve(
                     catalog,
                     query="\n".join([prompt_text, record.get("starter_code", "")]),
@@ -163,7 +169,11 @@ def main() -> None:
                         "demonstration_ids": [item["id"] for item in demonstrations],
                         "planner_prompt_sha256": system_sha256,
                         **({'planner_format': 'contracts'} if args.planner_format == 'contracts' else {}),
+                        **({'preserved_public_example_count': len(public)}
+                           if args.planner_format == 'contracts' else {}),
                     },
+                    **({'preserved_public_examples': public}
+                       if args.planner_format == 'contracts' and public else {}),
                 }
                 output.write(json.dumps(request, ensure_ascii=False, separators=(",", ":")) + "\n")
                 count += 1
