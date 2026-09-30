@@ -29,6 +29,36 @@ def step(description, needs, produces):
 
 
 class ContractCompiler(unittest.TestCase):
+    def test_schema_discriminates_branch_and_compute(self):
+        schema = load_schema(SCHEMA)
+        for name in ['basic', 'branch']:
+            self.assertEqual(validate_schema(example(name), schema), [])
+        bad = example('branch')
+        bad['steps'][0]['needs'] = []
+        self.assertTrue(validate_schema(bad, schema))
+        del bad['steps'][0]['needs']
+        bad['steps'][0]['produces']['extra'] = 'int'
+        self.assertTrue(validate_schema(bad, schema))
+        bad = example('basic')
+        del bad['steps'][0]['needs']
+        self.assertTrue(validate_schema(bad, schema))
+        bad = example('basic')
+        bad['steps'][0]['produces'] = {'not.a.name': 'int'}
+        self.assertTrue(validate_schema(bad, schema))
+
+    def test_node_globals_respect_nested_scopes(self):
+        from graphdsl_nodes import check_node_source
+        node = dict(id='fixture', inputs=[dict(id='items', type='list[int]')],
+                    outputs=[dict(id='answer', type='list[int]')])
+        prefix = f'def {symbol("fixture")}(inputs, regions):\n'
+        good = prefix + "    import math\n    offset = 2\n    def f(x):\n        return math.floor(x) + offset\n    return {'answer': [f(x) for x in inputs['items']]}"
+        self.assertEqual(check_node_source(good, node), [])
+        bad = prefix + "    return {'answer': [math.floor(x) for x in items]}"
+        errors = check_node_source(bad, node)
+        self.assertIn('undefined node globals', errors[0])
+        self.assertIn('math', errors[0])
+        self.assertIn('items', errors[0])
+
     def test_catalog_compiles_to_compact_valid_graphs_deterministically(self):
         schema = load_schema(ROOT / 'schemas/graphir-compact.schema.json')
         for name in ['basic', 'iteration', 'collection', 'branch', 'stdio']:

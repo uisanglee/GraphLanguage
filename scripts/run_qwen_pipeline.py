@@ -258,6 +258,8 @@ def main() -> None:
     settings.update(node_prompt=node_system, plan_prompt=plan_system, code_prompt=code_system, schema=schema_sha256)
     if args.planner_format == 'contracts':
         settings['contract_compiler'] = hashlib.sha256(Path(__file__).with_name('graphir_contracts.py').read_bytes()).hexdigest()
+        settings['node_compiler'] = hashlib.sha256(Path(__file__).with_name('graphdsl_nodes.py').read_bytes()).hexdigest()
+        settings['schema_validator'] = hashlib.sha256(Path(__file__).with_name('schema_validation.py').read_bytes()).hexdigest()
     run_identity(args.output, settings, args.input)
     if args.no_resume and args.output.exists() and args.output.stat().st_size:
         parser.error('--no-resume requires a fresh output path')

@@ -23,18 +23,20 @@ def limits(cpu_seconds: int, memory_bytes: int) -> None:
         resource.setrlimit(resource.RLIMIT_NPROC, (32, 32))
 
 
+def execution_source(job):
+    # Separate compilation preserves future imports at each module's beginning.
+    # All phases share globals so tests and candidates can use public helpers.
+    return '\n'.join(
+        f'exec(compile({job[key]!r}, {"<" + key + ">"!r}, "exec", dont_inherit=True), globals())'
+        for key in ('setup', 'candidate', 'test_source', 'invocation') if job.get(key)
+    )
+
+
 def main() -> None:
     job = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
     timeout = int(job.get("timeout_seconds", 5))
     memory = int(job.get("memory_bytes", 384 * 1024 * 1024))
-    source = "\n\n".join(
-        part for part in (
-            job.get("setup", ""),
-            job.get("candidate", ""),
-            job.get("test_source", ""),
-            job.get("invocation", ""),
-        ) if part
-    )
+    source = execution_source(job)
     marker = 'BENCHMARK_COMPLETED_' + uuid.uuid4().hex
     source += '\nprint(' + repr(marker) + ')\n'
     started = time.monotonic()

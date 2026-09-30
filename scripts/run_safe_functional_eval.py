@@ -40,14 +40,30 @@ def require_docker() -> None:
 
 
 def build_image(image: str, root: Path) -> None:
+    worker_hash = hashlib.sha256((root / 'sandbox/functional_worker.py').read_bytes()).hexdigest()
     subprocess.run(
         [
             "docker", "build", "--pull", "--tag", image,
+            "--label", f"org.graphir.functional-worker-sha256={worker_hash}",
             "--file", str(root / "sandbox" / "Dockerfile.functional"),
             str(root / "sandbox"),
         ],
         check=True,
     )
+
+
+def verify_image(image: str, root: Path) -> str:
+    """Refuse stale workers instead of reporting harness failures as model errors."""
+    inspected = subprocess.run(['docker', 'image', 'inspect', image],
+                               capture_output=True, text=True, timeout=20)
+    if inspected.returncode:
+        raise RuntimeError('Evaluation image missing; rerun with --build-image')
+    info = json.loads(inspected.stdout)[0]
+    expected = hashlib.sha256((root / 'sandbox/functional_worker.py').read_bytes()).hexdigest()
+    labels = info.get('Config', {}).get('Labels') or {}
+    if labels.get('org.graphir.functional-worker-sha256') != expected:
+        raise RuntimeError('Evaluation image has an old/unverified worker; rerun with --build-image')
+    return info['Id']
 
 
 def evaluate_single(
@@ -165,11 +181,15 @@ def main() -> None:
     root = Path(__file__).resolve().parents[1]
     if args.build_image:
         build_image(args.image, root)
+    image_id = verify_image(args.image, root)
 
     jobs = list(iter_jsonl(args.jobs))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     identity = hashlib.sha256(args.jobs.read_bytes() + json.dumps({
-        'image': args.image, 'timeout': args.timeout, 'memory': args.memory_mb
+        'image': args.image, 'timeout': args.timeout, 'memory': args.memory_mb,
+        'image_id': image_id,
+        'worker_sha256': hashlib.sha256((root / 'sandbox/functional_worker.py').read_bytes()).hexdigest(),
+        'runner_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
     },sort_keys=True).encode()).hexdigest()
     identity_path = args.output.with_suffix('.identity.json')
     if identity_path.exists() and json.loads(identity_path.read_text()) != identity:

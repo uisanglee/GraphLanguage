@@ -54,6 +54,16 @@ def validate_schema(instance: Any, schema: dict[str, Any]) -> list[str]:
             visit(value, _resolve_ref(schema, rule["$ref"]), path)
             return
 
+        if "anyOf" in rule:
+            matched = False
+            for alternative in rule['anyOf']:
+                start = len(errors)
+                visit(value, alternative, path)
+                matched = matched or len(errors) == start
+                del errors[start:]
+            if not matched:
+                errors.append(f"{path}: must match an anyOf alternative")
+
         if "const" in rule and value != rule["const"]:
             errors.append(f"{path}: must equal {rule['const']!r}")
         if "enum" in rule and value not in rule["enum"]:
@@ -86,6 +96,13 @@ def validate_schema(instance: Any, schema: dict[str, Any]) -> list[str]:
                     visit(item, item_rule, f"{path}[{index}]")
 
         if isinstance(value, dict):
+            if len(value) < rule.get('minProperties', 0):
+                errors.append(f"{path}: too few properties")
+            if 'maxProperties' in rule and len(value) > rule['maxProperties']:
+                errors.append(f"{path}: too many properties")
+            if 'propertyNames' in rule:
+                for name in value:
+                    visit(name, rule['propertyNames'], f'{path}.<key>')
             properties = rule.get("properties", {})
             for name in rule.get("required", []):
                 if name not in value:

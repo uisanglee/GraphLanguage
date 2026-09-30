@@ -28,13 +28,25 @@
       }
     },
     "step": {
+      "anyOf": [{"$ref": "#/$defs/compute"}, {"$ref": "#/$defs/branch"}]
+    },
+    "compute": {
       "type": "object", "additionalProperties": false,
-      "required": ["kind", "description", "produces"],
+      "required": ["kind", "description", "needs", "produces"],
       "properties": {
-        "kind": {"enum": ["Compute", "Branch"]},
+        "kind": {"const": "Compute"},
         "description": {"type": "string", "minLength": 1},
         "needs": {"type": "array", "items": {"$ref": "#/$defs/name"}},
-        "produces": {"type": "object", "additionalProperties": {"type": "string", "minLength": 1}},
+        "produces": {"type": "object", "minProperties": 1, "propertyNames": {"$ref": "#/$defs/name"}, "additionalProperties": {"type": "string", "minLength": 1}}
+      }
+    },
+    "branch": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "description", "condition", "produces", "then", "else"],
+      "properties": {
+        "kind": {"const": "Branch"},
+        "description": {"type": "string", "minLength": 1},
+        "produces": {"type": "object", "minProperties": 1, "maxProperties": 1, "propertyNames": {"$ref": "#/$defs/name"}, "additionalProperties": {"type": "string", "minLength": 1}},
         "condition": {"$ref": "#/$defs/name"},
         "then": {"$ref": "#/$defs/program"},
         "else": {"$ref": "#/$defs/program"}

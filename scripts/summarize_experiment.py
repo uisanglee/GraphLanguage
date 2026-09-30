@@ -37,6 +37,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--experiment-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument('--evaluation-subdir', default='evaluation')
     args = parser.parse_args()
 
     rows: list[dict[str, Any]] = []
@@ -53,7 +54,7 @@ def main() -> None:
             total = len(results)
             graph_rows = [row for row in results if "graph_raw" in row]
             parsel_rows = [row for row in results if "parsel_raw" in row]
-            evaluation_path = condition_dir / "evaluation" / benchmark / "results.jsonl"
+            evaluation_path = condition_dir / args.evaluation_subdir / benchmark / "results.jsonl"
             evaluations = list(iter_jsonl(evaluation_path))
             evaluations = list({r['task_id']:r for r in evaluations}.values())
             if benchmark in {'bigcodebench','livecodebench'}:

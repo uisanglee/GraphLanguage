@@ -5,9 +5,11 @@ Only node bodies are synthesized. The compiler never asks an LLM to assemble cod
 from __future__ import annotations
 
 import ast
+import builtins
 import hashlib
 import json
 import re
+import symtable
 from pathlib import Path
 from typing import Any
 
@@ -194,6 +196,7 @@ def node_request(graph: dict, node: dict) -> dict:
     return {
         "dialect": "core-0.2" if graph.get("metadata", {}).get("graphir_core_version") else "legacy-0.1",
         "signature": f"def {symbol(node['id'])}(inputs, regions):",
+        "return_template": 'return {' + ', '.join(repr(p['id']) + ': <' + p['id'] + '>' for p in node['outputs']) + '}',
         "node": node,
         "input_bindings": incoming,
         "input_values": {p['id']: {'type': p['type'], 'access': f"inputs[{p['id']!r}]"}
@@ -217,6 +220,19 @@ def check_node_source(source: str, node: dict, graph: dict | None = None) -> lis
         return ["node function must preserve the exact ABI signature"]
     if any(isinstance(n, (ast.Global, ast.Nonlocal)) for n in ast.walk(fn)):
         return ["node functions must not modify compiler/module globals"]
+    # Python's symbol table understands closures/comprehensions, unlike a flat AST
+    # name scan. Nodes have no implicit task variables or module-level imports.
+    allowed_globals = set(vars(builtins)) | {fn.name}
+    def undefined_globals(table):
+        missing = {s.get_name() for s in table.get_symbols()
+                   if s.is_referenced() and s.is_global() and s.get_name() not in allowed_globals}
+        for child in table.get_children():
+            missing.update(undefined_globals(child))
+        return missing
+    table = symtable.symtable(source, '<node>', 'exec')
+    missing = set().union(*(undefined_globals(child) for child in table.get_children()))
+    if missing:
+        return ['undefined node globals (bind inputs or import locally): ' + ', '.join(sorted(missing))]
     # Check only direct ABI expressions in the outer scope. Unknown types, aliases,
     # dynamic keys and shadowed ABI names are deliberately left to sandbox execution.
     def outer_nodes(item):

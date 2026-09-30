@@ -1,5 +1,41 @@
 # Named contracts and deterministic graph construction (v9)
 
+## Evaluation fixes and contract guards (v11)
+
+HumanEval evaluation now preserves public starter helpers/imports but removes the target stub.
+Setup, candidate and tests compile separately in the same sandbox namespace, so a candidate's
+future imports remain legal. Public example diagnostics parse only the target docstring, not
+the closing Python quotes. Reference solutions are never used as setup or generation inputs.
+
+Reevaluate existing v10 candidates **without any LLM calls**, preserving the original files:
+
+```sh
+python scripts/run_experiments.py --config experiments/parsel_graphdsl_humaneval_v10.json --stage reevaluate --evaluation-subdir evaluation-v11
+```
+
+This exports fresh jobs, rebuilds the Docker worker, evaluates all four configured conditions,
+and writes `summary-evaluation-v11.csv` in the original experiment directory. Per-condition
+jobs/results live in `evaluation-v11/humaneval/`. An existing destination is refused; after an
+interruption use the individual `export`, `evaluate`, `summarize` stages with the same subdir,
+as appropriate. Reevaluation does not reclassify old generation gates using new validators.
+
+For **new generation**, use `experiments/parsel_graphdsl_smoke_v11.json`,
+`parsel_graphdsl_humaneval_v11.json`, or `parsel_graphdsl_full_v11.json`. These use fresh output
+directories and build the updated functional image. HumanEval-only still excludes direct Python.
+
+The constrained schema now distinguishes Compute and Branch (Branch cannot emit needs and
+must declare exactly one result). Names, scope and type compatibility remain deterministic
+semantic checks: unknown references and overwritten values are rejected, never guessed.
+Prompts retain input formats, exact output strings and boundary semantics in local descriptions,
+and explain tuple-valued returns. Synthesis receives a return-key template and explicit input
+access expressions. Static symbol-table checks reject missing globals, including inside nested
+helpers/comprehensions, while allowing locally imported APIs and closures.
+
+No automatic repair, extra candidate sampling, or hidden-test feedback is added. Parsel's
+algorithm is untouched; the shared evaluation fixes apply equally to all conditions. New
+generation may still contain incorrect contracts/algorithms. Accuracy and vLLM constrained-schema
+compatibility require a GPU smoke run; local unit tests are not evidence of improved pass@1.
+
 ## Fixed public interfaces (v10)
 
 Use `parsel_graphdsl_smoke_v10.json`, `parsel_graphdsl_full_v10.json`, or

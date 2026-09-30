@@ -117,7 +117,7 @@ def export(config: dict[str, Any], dry_run: bool) -> None:
     }
     for condition in config["conditions"]:
         for benchmark in condition.get("benchmarks", config["benchmarks"]):
-            destination = output_dir / condition["name"] / "evaluation" / benchmark / suffixes[benchmark]
+            destination = output_dir / condition["name"] / config.get('evaluation', {}).get('subdir', 'evaluation') / benchmark / suffixes[benchmark]
             command = [
                 sys.executable, str(ROOT / "scripts" / "export_predictions.py"),
                 "--results", str(output_dir / condition["name"] / "results.jsonl"),
@@ -136,7 +136,7 @@ def evaluate(config: dict[str, Any], dry_run: bool) -> None:
     evaluation = config.get("evaluation", {})
     workers = str(evaluation.get("workers", 4))
     for condition in config["conditions"]:
-        base = output_dir / condition["name"] / "evaluation"
+        base = output_dir / condition["name"] / evaluation.get('subdir', 'evaluation')
         for benchmark in condition.get("benchmarks", config["benchmarks"]):
             bench_dir = base / benchmark
             if benchmark in {"humaneval", "mbpp"}:
@@ -170,10 +170,13 @@ def evaluate(config: dict[str, Any], dry_run: bool) -> None:
 
 def summarize(config: dict[str, Any], dry_run: bool) -> None:
     output_dir = absolute(config["output_dir"])
+    subdir = config.get('evaluation', {}).get('subdir', 'evaluation')
+    summary_name = 'summary.csv' if subdir == 'evaluation' else f'summary-{subdir}.csv'
     run([
         sys.executable, str(ROOT / "scripts" / "summarize_experiment.py"),
         "--experiment-dir", str(output_dir),
-        "--output", str(output_dir / "summary.csv"),
+        "--output", str(output_dir / summary_name),
+        "--evaluation-subdir", subdir,
     ], dry_run)
 
 
@@ -182,13 +185,27 @@ def main() -> None:
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument(
         "--stage",
-        choices=["prepare", "generate", "export", "evaluate", "summarize", "all"],
+        choices=["prepare", "generate", "export", "evaluate", "summarize", "all", "reevaluate"],
         required=True,
     )
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument('--evaluation-subdir', help='Separate evaluation folder; never changes generation results')
     args = parser.parse_args()
     config = json.loads(args.config.read_text(encoding="utf-8"))
+    if args.evaluation_subdir:
+        if Path(args.evaluation_subdir).name != args.evaluation_subdir or args.evaluation_subdir in {'.', '..'}:
+            parser.error('--evaluation-subdir must be one directory name')
+        config.setdefault('evaluation', {})['subdir'] = args.evaluation_subdir
     stages = ["prepare", "generate", "export", "evaluate", "summarize"] if args.stage == "all" else [args.stage]
+    if args.stage == 'reevaluate':
+        if not args.evaluation_subdir or args.evaluation_subdir == 'evaluation':
+            parser.error('reevaluate requires a fresh --evaluation-subdir (e.g. evaluation-v11)')
+        for condition in config['conditions']:
+            destination = absolute(config['output_dir']) / condition['name'] / args.evaluation_subdir
+            if destination.exists():
+                parser.error(f'reevaluation destination already exists: {destination}; use another name or resume individual stages')
+        config.setdefault('evaluation', {})['build_functional_image'] = True
+        stages = ['export', 'evaluate', 'summarize']
     actions = {
         "prepare": prepare, "generate": generate, "export": export,
         "evaluate": evaluate, "summarize": summarize,
