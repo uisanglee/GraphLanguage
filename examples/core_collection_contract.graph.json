@@ -1,0 +1,17 @@
+{
+  "graphir_version": "0.2.0",
+  "interface": {"mode":"function", "entrypoint":"rank_packages", "signature":"(packages: list[tuple[str, list[int]]], limit: int) -> list[str]"},
+  "nodes": [
+    {"id":"packages", "kind":"Input", "description":"Package labels and signed component costs, in original order.", "inputs":{}, "outputs":{"value":"list[tuple[str, list[int]]]"}},
+    {"id":"limit", "kind":"Input", "description":"Maximum number of labels to return; nonpositive means return none.", "inputs":{}, "outputs":{"value":"int"}},
+    {"id":"score", "kind":"Compute", "description":"Input packages contains (label, component_costs). Output scored contains (total_cost, label) for each package in original order; total_cost is the sum of its signed costs, zero for an empty cost list. Preserve duplicate labels and never mutate input. O(total number of costs) time.", "inputs":{"packages":"list[tuple[str, list[int]]]"}, "outputs":{"scored":"list[tuple[int, str]]"}},
+    {"id":"select", "kind":"Compute", "description":"Input scored contains (total_cost, label), never (index, total_cost). Stably sort by total_cost ascending, preserving original order on ties. Return labels only, at most max(0, limit) entries, or all if fewer exist. Empty input returns []. Do not mutate scored. O(n log n) time.", "inputs":{"scored":"list[tuple[int, str]]", "limit":"int"}, "outputs":{"labels":"list[str]"}},
+    {"id":"result", "kind":"Output", "description":"Return selected labels.", "inputs":{"value":"list[str]"}, "outputs":{}}
+  ],
+  "edges": [
+    {"from":"packages.value", "to":"score.packages"},
+    {"from":"score.scored", "to":"select.scored"},
+    {"from":"limit.value", "to":"select.limit"},
+    {"from":"select.labels", "to":"result.value"}
+  ]
+}

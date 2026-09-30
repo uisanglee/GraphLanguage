@@ -289,6 +289,7 @@ def _gd_region(region_id, bindings):
             sources = _gd_incoming.get((nid, port['id']), [])
             resolved = [values[(a, b)] for a, b in sources]
             args[port['id']] = (resolved if port.get('cardinality') == 'many' else resolved[0]) if sources else port.get('default')
+        _gd_assert_ports(node, 'inputs', args)
         if kind == 'RegionInput':
             produced = {p['id']: bindings[nid + '.' + p['id']] for p in node['outputs']}
         elif kind == 'Input':
@@ -318,6 +319,7 @@ def _gd_region(region_id, bindings):
         expected = {p['id'] for p in node['outputs']}
         if not isinstance(produced, dict) or set(produced) != expected:
             raise ValueError('GraphDSL node output contract violated: ' + nid)
+        _gd_assert_ports(node, 'outputs', produced)
         values.update({(nid, port): value for port, value in produced.items()})
     return result
 '''
@@ -346,6 +348,7 @@ def compile_graph(graph: dict, implementations: dict[str, str]) -> str:
     source += "\n\n".join(f"# graphdsl:{nid}\n{code}" for nid, code in implementations.items())
     source += f"\n\n_gd_graph = {graph!r}\n_gd_orders = {orders!r}\n_gd_incoming = {incoming!r}\n"
     source += "_gd_functions = {" + ",".join(f"{nid!r}: {symbol(nid)}" for nid in implementations) + "}\n"
+    source += '\n' + (Path(__file__).parent / 'graphir_types.py').read_text() + '\n'
     source += RUNTIME
     interface = graph["interface"]
     if interface["mode"] == "stdio":

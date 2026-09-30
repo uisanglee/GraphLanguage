@@ -62,6 +62,7 @@ def retrieve(
         for item in candidates
     ]
     query_counts = Counter(tokenize(query))
+    query_features = set(query_counts)
     document_frequency = Counter(token for doc in documents for token in set(doc))
     average_length = sum(map(len, documents)) / max(len(documents), 1)
     ranked: list[tuple[float, str, dict[str, Any]]] = []
@@ -82,9 +83,19 @@ def retrieve(
             lexical += query_weight * inverse_document_frequency * frequency * 2.2 / normalization
         profile_bonus = 10.0
         benchmark_bonus = 2.0 if benchmark in item.get("benchmarks", []) else 0.0
-        ranked.append((profile_bonus + benchmark_bonus + lexical, item["id"], item))
+        structure_bonus = 0.0
+        if item.get('structure') == 'collection_pipeline' and query_features & {'sort', 'sorted', 'matrix', 'rows', 'tuples', 'rank', 'ranking'}:
+            structure_bonus = 8.0
+        ranked.append((profile_bonus + benchmark_bonus + lexical + structure_bonus, item["id"], item))
     ranked.sort(key=lambda value: (-value[0], value[1]))
-    return [item for _, _, item in ranked[:limit]]
+    selected = [item for _, _, item in ranked[:limit]]
+    # Reserve one syntax reference within the existing budget. This guarantees
+    # nested syntax exposure even when lexical top-1 is a simple Compute example.
+    if interface == 'function' and limit >= 2 and not require_artifact:
+        nested = next((item for _, _, item in ranked if item['id'] == 'function-nested-control'), None)
+        if nested and not any(item['id'] == nested['id'] for item in selected):
+            selected[-1] = nested
+    return selected
 
 
 def planner_demo_messages(items: list[dict[str, Any]]) -> list[dict[str, str]]:

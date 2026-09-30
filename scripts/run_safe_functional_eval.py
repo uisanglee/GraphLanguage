@@ -16,6 +16,11 @@ from pathlib import Path
 from typing import Any, Iterator
 
 
+def diagnostics_complete(result):
+    return all(result.get(key, {}).get('status') in {None, 'passed', 'failed', 'timeout'}
+               for key in ('public_evaluation', 'port_evaluation'))
+
+
 def iter_jsonl(path: Path) -> Iterator[dict[str, Any]]:
     with path.open(encoding="utf-8") as stream:
         for line in stream:
@@ -45,7 +50,7 @@ def build_image(image: str, root: Path) -> None:
     )
 
 
-def evaluate_one(
+def evaluate_single(
     job: dict[str, Any], image: str, timeout: int, memory_mb: int
 ) -> dict[str, Any]:
     if not job.get("generation_valid", False):
@@ -114,6 +119,35 @@ def evaluate_one(
         }
 
 
+def evaluate_one(job, image, timeout, memory_mb):
+    # Every diagnostic uses a fresh container. Official pass/fail is never overwritten.
+    result = evaluate_single(job, image, timeout, memory_mb)
+    examples = job.get('public_examples', {})
+    result['public_example_provenance'] = {k: v for k, v in examples.items() if k != 'source'}
+    result['example_valid'] = None
+    result['port_contracts_valid'] = None
+    if not job.get('generation_valid'):
+        return result
+    if examples.get('count') and examples.get('source'):
+        diagnostic = dict(job, test_source=examples['source'], invocation='')
+        result['public_evaluation'] = evaluate_single(diagnostic, image, timeout, memory_mb)
+        status = result['public_evaluation']['status']
+        if status in {'passed', 'failed', 'timeout'}:
+            result['example_valid'] = result['public_evaluation']['passed']
+    if job.get('graphir_type_diagnostics'):
+        # The same benchmark inputs exercise port diagnostics in a separate run.
+        # Assertions may fail before all ports are exercised: this is inconclusive,
+        # not evidence that port contracts are valid.
+        check = 'assert globals().get("_gd_contract_runtime_version") == 1, "port diagnostics unavailable"\n_gd_check_types = True\n'
+        diagnostic = dict(job, test_source=check + job.get('test_source', ''))
+        result['port_evaluation'] = evaluate_single(diagnostic, image, timeout, memory_mb)
+        if result['port_evaluation'].get('passed'):
+            result['port_contracts_valid'] = True
+        elif 'GraphIRPortTypeError:' in result['port_evaluation'].get('stderr', ''):
+            result['port_contracts_valid'] = False
+    return result
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--jobs", type=Path, required=True)
@@ -145,7 +179,7 @@ def main() -> None:
     identity_path.write_text(json.dumps(identity))
     completed_ids = {
         row["task_id"] for row in iter_jsonl(args.output)
-        if row.get('status') in {'passed','failed','timeout','invalid_generation'}
+        if row.get('status') in {'passed','failed','timeout','invalid_generation'} and diagnostics_complete(row)
     } if args.output.exists() else set()
     pending = [job for job in jobs if job["task_id"] not in completed_ids]
     with args.output.open("a", encoding="utf-8") as output:

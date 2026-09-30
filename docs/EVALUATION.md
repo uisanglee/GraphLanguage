@@ -36,16 +36,47 @@ python3 scripts/run_experiments.py --config experiments/my-run.json --stage eval
 All stages support `--dry-run`. Generation is resumable by `custom_id`; functional evaluation is
 resumable by task ID.
 
-The current smoke output is `outputs/qwen7b-node-smoke-v6`. It isolates the revised input-only
-node prompts and ABI checks from previous cached results. Run `--stage all` for generation AND
+The current smoke output is `outputs/qwen7b-node-smoke-v7`. It isolates the revised contracts,
+demonstration selection and execution diagnostics from previous cached results. Run `--stage all` for generation AND
 sandboxed execution; `artifact_valid` alone measures static acceptance, not correctness.
 ABI checks catch direct literal references to missing input ports/owned callbacks and clearly
 invalid indexing for known scalar/sequence types. They allow dictionary values and unknown types;
 aliases, dynamic keys and shadowed names are not a full type/dataflow analysis. Algorithms, index
 provenance, output limits and other semantic contracts still require benchmark execution. Failed
 attempts are recorded without repair/resampling or selecting candidates using evaluation tests.
-The nested planner example is available to lexical retrieval; a one-example budget does not
-guarantee it is selected. Inspect demonstration_ids when comparing the direct and plan conditions.
+GraphIR planner conditions now use two examples: a task/structure-matched example plus a nested
+control syntax reference (reserved within the budget). Collection/ranking tasks favor a synthetic
+typed-pair pipeline with explicit output limits and tie behavior. Setting the budget to zero still
+disables retrieval; a budget of one retains ranking only. Inspect demonstration_ids and token costs;
+the new prompt budget differs from v6 and is not a controlled one-variable ablation. Parsel's
+demonstration budget and upstream synthesis algorithm are unchanged.
+
+## Public examples and port diagnostics
+
+For HumanEval/MBPP, the exporter also builds public checks from normalized task data:
+HumanEval uses doctests in the original prompt; MBPP uses the original public assertion list.
+Generated GraphIR examples are never evaluated or converted with eval. Missing or unparseable
+examples are recorded as unavailable, not successful. MBPP public and benchmark tests can coincide;
+these are not independent evidence. These checks are exported only after generation completes.
+
+Evaluation launches separate restricted containers for (1) official tests, (2) public examples when
+available, and (3) port diagnostics on the same official tests for node-compiled GraphIR artifacts.
+No diagnostic feeds back into generation or candidate selection. These runs add execution cost but
+no LLM calls. The original official `passed` value is retained regardless of diagnostic outcomes.
+
+Per-task evaluation results include `example_valid`, `public_example_provenance` (origin, count,
+source hash), `public_evaluation`, `port_contracts_valid`, and `port_evaluation` (stderr includes the
+failing node, port and direction). The generation results.jsonl still contains only static validity.
+Port checks are disabled by default in compiled code; the diagnostic run enables them after loading
+the artifact. They recursively check known scalars and built-in containers, tuples, dictionaries and
+unions without evaluating annotation strings. Unknown/custom types and nesting deeper than 20 are
+accepted. True means supported types on exercised paths passed; an unrelated assertion/runtime
+failure is inconclusive (null), not proof of correct port contracts.
+
+summary.csv reports `public_examples_evaluated`, `public_example_pass_rate`,
+`port_contracts_conclusive`, `port_contract_failures`, and `diagnostic_infrastructure_errors`.
+Public-example rate is over actually checked valid artifacts; it is not end-to-end pass@1.
+Failed diagnostic infrastructure is retried on resume and never counted as a semantic failure.
 
 ## HumanEval and MBPP
 

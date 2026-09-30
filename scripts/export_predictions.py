@@ -10,6 +10,7 @@ from typing import Any, Iterator
 
 from build_qwen_eval import is_official_evaluation_task
 from validate_artifact import strip_fence
+from public_examples import public_checks
 
 
 def iter_jsonl(path: Path) -> Iterator[dict[str, Any]]:
@@ -79,6 +80,8 @@ def export_functional(
             "test_source": test_source,
             "invocation": invocation,
             "generation_valid": generation_valid,
+            "public_examples": public_checks(task, benchmark),
+            "graphir_type_diagnostics": result.get('synthesis_mode') == 'nodes',
             "generation_errors": result.get("artifact_errors") or [
                 result.get("pipeline_error") or result.get("generation_error") or
                 result.get("synthesis_error") or "no valid generated artifact"

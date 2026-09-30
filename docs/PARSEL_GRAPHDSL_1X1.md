@@ -1,7 +1,7 @@
 # GraphIR Core node synthesis and original Parsel (1×1)
 
 The current matrix is experiments/parsel_graphdsl_1x1.json. Its output directory is
-outputs/qwen7b-parsel-graphir-core-v6; do not mix it with results from older language versions.
+outputs/qwen7b-parsel-graphir-core-v7; do not mix it with results from older language versions.
 
 ## What runs
 
@@ -22,8 +22,10 @@ inside Compute when no editable subgraph is needed.
 Imports are local to node functions, avoiding collisions between independently generated modules.
 Source functions retain stable node-ID comments and node results are recorded individually.
 
-Both IR translators receive one hand-authored synthetic, interface-matched format demonstration by
-default. GraphIR uses the auditable Core graph catalog and Parsel uses
+The v7 GraphIR translator receives two synthetic examples: a ranked task/structure example and a
+nested-control syntax reference. Node synthesis retains one example. Parsel retains one format
+demonstration. Compare token budgets explicitly; these are not equal-shot conditions.
+GraphIR uses the auditable Core graph catalog and Parsel uses
 `demonstrations/parsel_catalog.json`. These demonstrations contain no benchmark solution. Set the
 corresponding demonstration count to zero only for an explicitly labeled zero-shot ablation.
 

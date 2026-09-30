@@ -18,6 +18,15 @@
     "artifact": "artifacts/function_loop.py"
   },
   {
+    "id": "function-collection-contract",
+    "interface": "function",
+    "benchmarks": ["humaneval", "mbpp", "bigcodebench", "livecodebench"],
+    "structure": "collection_pipeline",
+    "task": "Implement rank_packages(packages, limit). Each package is a (label, list of signed component costs) tuple. Rank by summed cost ascending, preserving original order for ties, and return at most max(0, limit) labels without mutating input.",
+    "keywords": ["collection", "list", "tuple", "sort", "rank", "limit", "stable", "contract"],
+    "graph": "../examples/core_collection_contract.graph.json"
+  },
+  {
     "id": "function-nested-control",
     "interface": "function",
     "benchmarks": ["humaneval", "mbpp", "bigcodebench", "livecodebench"],

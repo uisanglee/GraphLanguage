@@ -25,8 +25,9 @@ proven by schema validation.
 
 Retrieval: planner demonstrations use the existing catalog. Node synthesis uses the hand-authored
 demonstrations/node_catalog.json, filtered by kind and ranked lexically. A missing matching example
-means zero examples. IDs are logged. The default comparison uses one synthetic format demonstration
-for GraphIR planning, node synthesis, and NL-to-Parsel; zero demonstrations is an explicitly
+means zero examples. IDs are logged. The v7 matrix uses two examples for GraphIR planning,
+including one reserved nested syntax reference, and one each for node synthesis and NL-to-Parsel.
+Collection pipelines receive structural ranking priority; zero demonstrations is an explicitly
 labeled ablation. The old --synthesis-mode whole is available only as an explicitly labeled
 ablation or for repository patch experiments.
 

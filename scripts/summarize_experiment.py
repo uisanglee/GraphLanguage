@@ -68,6 +68,8 @@ def main() -> None:
             totals = [inference_totals(r) for r in results]
             passed = sum(bool(row.get("passed")) for row in evaluations)
             lower, upper = wilson(passed, len(evaluations))
+            public_checked = [r['example_valid'] for r in evaluations if isinstance(r.get('example_valid'), bool)]
+            port_checked = [r['port_contracts_valid'] for r in evaluations if isinstance(r.get('port_contracts_valid'), bool)]
             rows.append({
                 "condition": condition_dir.name,
                 "benchmark": benchmark,
@@ -91,6 +93,13 @@ def main() -> None:
                 "evaluated": len(evaluations),
                 "evaluation_complete": complete,
                 "infrastructure_errors": infra_errors,
+                "public_examples_evaluated": len(public_checked),
+                "public_example_pass_rate": sum(public_checked) / len(public_checked) if public_checked else "",
+                "port_contracts_conclusive": len(port_checked),
+                "port_contract_failures": sum(not value for value in port_checked),
+                "diagnostic_infrastructure_errors": sum(
+                    r.get(key, {}).get('status') in {'container_error','runner_error','invalid_worker_output','container_timeout'}
+                    for r in evaluations for key in ('public_evaluation','port_evaluation')),
                 "mean_tokens": sum(t[0] for t in totals) / total if total else 0,
                 "mean_inference_seconds": sum(t[1] for t in totals) / total if total else 0,
                 "passed": passed,

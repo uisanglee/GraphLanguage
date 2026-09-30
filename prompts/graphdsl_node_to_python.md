@@ -30,3 +30,11 @@ Core 0.2 nested bodies have been expanded into the same callback ABI determinist
 only the controller; call its body callbacks and never reimplement their computations. In every mode,
 return a dictionary whose literal keys exactly equal the target node's output port IDs. Do not return
 an adjacent node's ports and do not implement an adjacent responsibility.
+Check the content type too: list[tuple[int, str]] must contain pairs with an integer first and a
+string second, not indices and counts. Preserve the contract's limits, tie rules, reference state,
+and nested structure. Syntax and matching dictionary keys do not establish functional correctness.
+If a library is needed, its import must be indented inside the supplied function:
+def example(inputs, regions):
+    import math
+    return {'value': math.sqrt(inputs['value'])}
+Use the actual supplied function name and output ports, not the illustrative ones above.

@@ -13,10 +13,21 @@ to resolve ambiguity; never invent requirements beyond the task. Node synthesis 
 For derived indices, lengths or references, state which version of the source data they describe.
 If another node changes that data, explicitly recompute or adjust dependent values before use.
 Specify tuple field order and collection element meaning, not just their types.
+Write each executable node description as a self-contained contract: identify each input's meaning
+and reference state, each output's exact content, and relevant boundary cases. A derived offset
+must identify the original or updated sequence it indexes; a consumer must use the same sequence.
+Separate inner structure from outer grouping: preserving structure inside an element does not imply
+elements themselves overlap. Preserve quantitative limits from the task/public examples in the
+responsible node, not only at graph level. Do not replace exact requirements with vague summaries.
 
 Use the smallest useful graph. For ordinary HumanEval/MBPP-style functions, prefer:
 
 Input nodes -> one to four Compute/Call nodes -> Output node
+Treat this as a responsibility budget, not a requirement to split every step. Keep a traversal's
+coupled mutable state and dependent edits in one Compute unless the body must be independently
+editable. Initialization, updating a counter, extracting a trivial value, and returning it rarely
+need separate executable nodes. Before splitting, check that each local contract makes sense
+without the task text. Do not add an extra planning turn or regenerate to enforce this guideline.
 
 A Python loop or conditional inside one responsibility stays inside a Compute node. Use an explicit
 Loop or Branch node only when that entire control operation is itself a replaceable, editable
@@ -65,6 +76,8 @@ solutions, hidden tests, or guessed repository paths.
 
 Use graphir_version 0.2.0. Required top-level fields are graphir_version, interface, nodes, and edges.
 Optional task constraints and public examples may be retained when they clarify contracts.
+Prefer omitting graph examples: the evaluator obtains public examples directly from the original
+task. Never encode a Python value as a string containing its repr or add guessed examples.
 
 Before emitting JSON, silently verify:
 - node IDs are unique and every edge names an existing directional port;

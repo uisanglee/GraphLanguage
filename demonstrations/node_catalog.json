@@ -1,5 +1,48 @@
 [
   {
+    "id": "node-import-distance",
+    "kind": "Compute",
+    "request": {
+      "signature": "def _gd_example_distance(inputs, regions):",
+      "node": {
+        "id": "distance",
+        "kind": "Compute",
+        "description": "Return the Euclidean magnitude of the numeric coordinates x and y, using math.hypot; zero coordinates give zero. Do not mutate inputs.",
+        "inputs": [
+          {
+            "id": "x",
+            "type": "float"
+          },
+          {
+            "id": "y",
+            "type": "float"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "length",
+            "type": "float"
+          }
+        ],
+        "config": {}
+      },
+      "input_bindings": [],
+      "input_values": {
+        "x": {
+          "type": "float",
+          "access": "inputs['x']"
+        },
+        "y": {
+          "type": "float",
+          "access": "inputs['y']"
+        }
+      },
+      "region_callbacks": {}
+    },
+    "code": "def _gd_example_distance(inputs, regions):\n    import math\n    return {'length': math.hypot(inputs['x'], inputs['y'])}\n",
+    "provenance": "hand-authored library import ABI example; no benchmark solution"
+  },
+  {
     "id": "node-double-value",
     "kind": "Compute",
     "request": {
