@@ -1,0 +1,49 @@
+{
+  "graphir_version": "0.2.0",
+  "id": "example:absolute-distance",
+  "title": "Absolute distance",
+  "description": "Return the non-negative absolute difference between two numbers.",
+  "interface": {
+    "mode": "function",
+    "entrypoint": "absolute_distance",
+    "signature": "(a: float, b: float) -> float"
+  },
+  "nodes": [
+    {
+      "id": "a",
+      "kind": "Input",
+      "description": "The public numeric parameter a.",
+      "inputs": {},
+      "outputs": {"value": "float"}
+    },
+    {
+      "id": "b",
+      "kind": "Input",
+      "description": "The public numeric parameter b.",
+      "inputs": {},
+      "outputs": {"value": "float"}
+    },
+    {
+      "id": "distance",
+      "kind": "Compute",
+      "description": "Return the non-negative absolute value of a minus b for finite numeric inputs in O(1) time without mutation.",
+      "inputs": {"a": "float", "b": "float"},
+      "outputs": {"value": "float"},
+      "constraints": ["pure", "O(1) time"]
+    },
+    {
+      "id": "result",
+      "kind": "Output",
+      "description": "Return the computed non-negative distance.",
+      "inputs": {"value": "float"},
+      "outputs": {}
+    }
+  ],
+  "edges": [
+    {"from": "a.value", "to": "distance.a"},
+    {"from": "b.value", "to": "distance.b"},
+    {"from": "distance.value", "to": "result.value"}
+  ],
+  "constraints": ["Do not mutate inputs", "O(1) time"],
+  "examples": [{"inputs": {"a": 2, "b": 7}, "outputs": {"return": 5}}]
+}

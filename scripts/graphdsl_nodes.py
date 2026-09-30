@@ -15,11 +15,14 @@ BOUNDARIES = {"Input", "Output", "Literal", "RegionInput", "RegionOutput"}
 CONTROL = {"Loop", "Branch", "Try", "Context"}
 
 
-def node_demonstrations(node, count):
+def node_demonstrations(node, count, dialect=None):
     if count <= 0: return [], []
     bank = json.loads((Path(__file__).resolve().parents[1] / 'demonstrations/node_catalog.json').read_text())
     query = set(re.findall(r'\w+', node['description'].lower()))
-    ranked = sorted((d for d in bank if d['kind'] == node['kind']),
+    candidates = (d for d in bank if d['kind'] == node['kind'])
+    if node['kind'] in CONTROL:
+        candidates = (d for d in candidates if d.get('dialect', 'legacy-0.1') == dialect)
+    ranked = sorted(candidates,
                     key=lambda d: (-len(query & set(re.findall(r'\w+',json.dumps(d['request']).lower()))),d['id']))[:count]
     messages = []
     for demo in ranked:
@@ -53,7 +56,9 @@ def region_order(graph: dict, region: str) -> list[dict]:
 
 
 def validate_structure(graph: dict) -> list[str]:
+    from graphir_core import CanonicalCore
     errors = []
+    core = isinstance(graph, CanonicalCore)
     nodes = {n["id"]: n for n in graph["nodes"]}
     regions = {r["id"]: r for r in graph["regions"]}
     if regions.get("root", {}).get("owner") is not None:
@@ -131,9 +136,9 @@ def validate_structure(graph: dict) -> list[str]:
                         errors.append(f"{nid}: invalid branch region")
                     elif branch.get("condition_port") is not None and branch["condition_port"] not in inputs:
                         errors.append(f"{nid}: invalid condition_port")
-        if kind in {"Try", "Context"} and config.get("body_region") not in owned:
+        if kind in {"Try", "Context"} and not core and config.get("body_region") not in owned:
             errors.append(f"{nid}: requires owned body_region")
-        if kind in {'Branch','Try','Context'}:
+        if kind == 'Branch' or (kind in {'Try','Context'} and not core):
             mappings = config.get('region_bindings',{})
             for rid in owned:
                 mapping = mappings.get(rid,{})
@@ -181,6 +186,7 @@ def node_request(graph: dict, node: dict) -> dict:
             "contracts": [{"id": n["id"], "description": n["description"]} for n in members],
         }
     return {
+        "dialect": "core-0.2" if graph.get("metadata", {}).get("graphir_core_version") else "legacy-0.1",
         "signature": f"def {symbol(node['id'])}(inputs, regions):",
         "node": node,
         "connected_contracts": [by_id[key] for key in sorted(adjacent)],
@@ -203,6 +209,26 @@ def check_node_source(source: str, node: dict) -> list[str]:
         return ["node function must preserve the exact ABI signature"]
     if any(isinstance(n, (ast.Global, ast.Nonlocal)) for n in ast.walk(fn)):
         return ["node functions must not modify compiler/module globals"]
+    expected = {port["id"] for port in node["outputs"]}
+    def own_returns(statements):
+        for item in statements:
+            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+                continue
+            if isinstance(item, ast.Return):
+                yield item.value
+            else:
+                yield from own_returns(ast.iter_child_nodes(item))
+    for returned in own_returns(fn.body):
+        if isinstance(returned, ast.Dict) and all(
+            isinstance(key, ast.Constant) and isinstance(key.value, str)
+            for key in returned.keys
+        ):
+            actual = {key.value for key in returned.keys}
+            if actual != expected:
+                return [
+                    "literal return keys must equal output ports: "
+                    f"expected {sorted(expected)}, got {sorted(actual)}"
+                ]
     return []
 
 
@@ -253,10 +279,12 @@ def _gd_region(region_id, bindings):
 
 
 def compile_graph(graph: dict, implementations: dict[str, str]) -> str:
+    from graphir_core import canonicalize_graph
     from validate_graph import validate
     errors = validate(graph)
     if errors:
         raise ValueError('; '.join(errors))
+    graph = canonicalize_graph(graph)
     if graph["interface"]["mode"] == "repository_patch":
         raise ValueError("node ABI produces Python; repository patches require the explicit legacy mode")
     for node in graph["nodes"]:

@@ -1,14 +1,14 @@
 {
-  "name": "qwen7b-node-smoke",
+  "name": "qwen7b-graphir-core-smoke",
   "input_dir": "data/normalized",
-  "output_dir": "outputs/qwen7b-node-smoke-v3",
+  "output_dir": "outputs/qwen7b-node-smoke-v5",
   "benchmarks": ["humaneval", "mbpp"],
   "official_eval_only": true,
   "generation": {"base_url":"http://localhost:8000/v1", "model":"Qwen/Qwen2.5-Coder-7B-Instruct", "temperature":0.0, "limit":3},
   "conditions": [
     {"name":"direct-python-1x1","kind":"direct"},
-    {"name":"graphdsl-direct-1x1","kind":"graphdsl","planner_demonstrations":1,"code_demonstrations":1,"synthesis_mode":"nodes"},
-    {"name":"graphdsl-plan-1x1","kind":"graphdsl","planner_demonstrations":1,"code_demonstrations":1,"synthesis_mode":"nodes","high_level_plan":true},
+    {"name":"graphir-core-direct-1x1","kind":"graphdsl","planner_demonstrations":1,"code_demonstrations":1,"synthesis_mode":"nodes"},
+    {"name":"graphir-core-plan-1x1","kind":"graphdsl","planner_demonstrations":1,"code_demonstrations":1,"synthesis_mode":"nodes","high_level_plan":true},
     {"name":"parsel-direct-1x1","kind":"parsel","parsel_demonstrations":1},
     {"name":"parsel-plan-1x1","kind":"parsel","parsel_demonstrations":1,"high_level_plan":true}
   ],

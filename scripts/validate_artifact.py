@@ -10,11 +10,12 @@ from pathlib import Path
 
 def strip_fence(text: str) -> str:
     value = text.strip()
-    if not value.startswith("```"):
-        return value
     lines = value.splitlines()
     if lines and lines[0].startswith("```"):
         lines = lines[1:]
+    # Some completion models omit the opening fence but still emit a final fence.
+    # Removing one fence-only final line is formatting normalization; embedded
+    # Markdown remains an error and the caller retains raw_code for provenance.
     if lines and lines[-1].strip() == "```":
         lines = lines[:-1]
     return "\n".join(lines).strip()

@@ -1,13 +1,7 @@
 import sys
 
 
-# graphdsl:stdin
+# graphir:stdin
 text = sys.stdin.read()
-# graphdsl:parse
-numbers = [int(token) for token in text.split()]
-# graphdsl:sum
-total = sum(numbers)
-# graphdsl:format
-formatted = str(total)
-# graphdsl:stdout
-print(formatted)
+# graphir:solve
+print(sum(int(token) for token in text.split()))

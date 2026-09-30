@@ -1,0 +1,35 @@
+{
+  "graphir_version": "0.2.0",
+  "id": "example:stdio-sum",
+  "title": "Sum integers from standard input",
+  "description": "Read whitespace-separated integers and print their sum.",
+  "interface": {"mode": "stdio", "entrypoint": null, "signature": null},
+  "nodes": [
+    {
+      "id": "stdin",
+      "kind": "Input",
+      "description": "Read all standard input exactly once.",
+      "inputs": {},
+      "outputs": {"text": "str", "effect": "EffectToken"}
+    },
+    {
+      "id": "solve",
+      "kind": "Compute",
+      "description": "Parse every whitespace-separated token as an integer and return their arithmetic sum, using zero for empty input.",
+      "inputs": {"text": "str"},
+      "outputs": {"text": "str"}
+    },
+    {
+      "id": "stdout",
+      "kind": "Output",
+      "description": "Print text followed by exactly one newline after the stdin effect.",
+      "inputs": {"text": "str", "effect": "EffectToken"},
+      "outputs": {"done": "EffectToken"}
+    }
+  ],
+  "edges": [
+    {"from": "stdin.text", "to": "solve.text"},
+    {"from": "solve.text", "to": "stdout.text"},
+    {"from": "stdin.effect", "to": "stdout.effect"}
+  ]
+}

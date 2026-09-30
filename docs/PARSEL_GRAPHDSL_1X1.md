@@ -1,28 +1,29 @@
-# GraphDSL node synthesis and original Parsel (1×1)
+# GraphIR Core node synthesis and original Parsel (1×1)
 
 The current matrix is experiments/parsel_graphdsl_1x1.json. Its output directory is
-outputs/qwen7b-parsel-graphdsl-nodes-v3; do not mix it with results from older prompt versions.
+outputs/qwen7b-parsel-graphir-core-v5; do not mix it with results from older language versions.
 
 ## What runs
 
 | Condition | Generation |
 |---|---|
 | direct-python-1x1 | task → one Python artifact |
-| graphdsl-direct-1x1 | task → one graph → one implementation per executable node → deterministic wiring |
-| graphdsl-plan-1x1 | task → shared plan → graph → node implementations → deterministic wiring |
+| graphir-core-direct-1x1 | task → one Core graph → one implementation per executable node → deterministic wiring |
+| graphir-core-plan-1x1 | task → shared plan → Core graph → node implementations → deterministic wiring |
 | parsel-direct-1x1 | task → Parsel → original SCC synthesizer with n=k=1 |
 | parsel-plan-1x1 | task → shared plan → Parsel → original SCC synthesizer with n=k=1 |
 
-Input, Output, Literal, RegionInput and RegionOutput are compiled boundaries, not LLM calls.
-Compute and control nodes have separate functions. A node sees its own contract, connected node
-contracts, and contracts of its owned region callbacks. It never sees the original task or another
-node's implementation. The compiler wires data ports in topological order within each region.
-Loop and Branch implementations call already-implemented region callbacks only when needed.
+Input, Output, and Literal are compiled boundaries, not LLM calls. Compute and optional semantic
+control nodes have separate functions. A node sees its own contract and connected node contracts.
+It never sees the original task or another node's implementation. Core 0.2 infers region boundaries
+and callbacks from nested Loop/Branch body graphs. The compiler wires each scope topologically;
+controllers invoke the independently implemented body callbacks. Local control flow can also remain
+inside Compute when no editable subgraph is needed.
 Imports are local to node functions, avoiding collisions between independently generated modules.
 Source functions retain stable node-ID comments and node results are recorded individually.
 
 Both IR translators receive one hand-authored synthetic, interface-matched format demonstration by
-default. GraphDSL uses the auditable graph catalog and Parsel uses
+default. GraphIR uses the auditable Core graph catalog and Parsel uses
 `demonstrations/parsel_catalog.json`. These demonstrations contain no benchmark solution. Set the
 corresponding demonstration count to zero only for an explicitly labeled zero-shot ablation.
 
@@ -41,7 +42,7 @@ algorithm, not stripped or independently reinterpreted.
 CodeGen's legacy OpenAI Completion transport is replaced by file RPC to the host, which forwards
 the unchanged prompt/stop/temperature/token parameters to Qwen's /v1/completions endpoint.
 There is no new function-level chat prompt. The original Python defaults remain 500 completion
-tokens and temperature 0.6. GraphDSL node synthesis defaults to 4096 tokens and temperature 0.0.
+tokens and temperature 0.6. GraphIR node synthesis defaults to 4096 tokens and temperature 0.0.
 These are **single-candidate comparisons, not equal-token or identical-decoding comparisons**.
 Preserving Parsel's defaults is intentional; report measured cost and these settings.
 

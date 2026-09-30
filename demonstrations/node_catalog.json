@@ -12,8 +12,23 @@
     "provenance": "hand-authored ABI example; no benchmark solution"
   },
   {
+    "id": "node-core-loop-body",
+    "kind": "Loop",
+    "dialect": "core-0.2",
+    "request": {
+      "dialect": "core-0.2",
+      "signature": "def _gd_example_core_loop(inputs, regions):",
+      "node": {"id":"scan","kind":"Loop","description":"Accumulate through the body callback.","inputs":[{"id":"values","type":"list[int]"},{"id":"total","type":"int"}],"outputs":[{"id":"total","type":"int"}],"config":{"mode":"for_each","iterable_port":"values","body_region":"scan.body","iteration":{"item_boundary":"scan.body.__input.item"},"carried":[{"initial_port":"total","input_boundary":"scan.body.__input.total","output_boundary":"scan.body.__output.total","final_port":"total"}],"bindings":{}}},
+      "connected_contracts": [],
+      "region_callbacks": {"scan.body":{"inputs":["scan.body.__input.item","scan.body.__input.total"],"outputs":["scan.body.__output.total"],"description":"Add item to total."}}
+    },
+    "code": "def _gd_example_core_loop(inputs, regions):\n    total = inputs['total']\n    for item in inputs['values']:\n        total = regions['scan.body']({'scan.body.__input.item': item, 'scan.body.__input.total': total})['scan.body.__output.total']\n    return {'total': total}\n",
+    "provenance": "hand-authored Core 0.2 nested-control ABI example"
+  },
+  {
     "id": "node-loop-sum",
     "kind": "Loop",
+    "dialect": "legacy-0.1",
     "request": {
       "signature": "def _gd_example_loop(inputs, regions):",
       "node": {"id":"loop","kind":"Loop","description":"Accumulate integers through the already-implemented body.","inputs":[{"id":"iterable","type":"list[int]"},{"id":"initial","type":"int"}],"outputs":[{"id":"total","type":"int"}],"config":{"mode":"for_each","body_region":"body","iteration":{"item_boundary":"item.value"},"carried":[{"initial_port":"initial","input_boundary":"state.value","output_boundary":"next.value","final_port":"total"}]}},

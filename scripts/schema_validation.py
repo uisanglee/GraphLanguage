@@ -90,13 +90,16 @@ def validate_schema(instance: Any, schema: dict[str, Any]) -> list[str]:
             for name in rule.get("required", []):
                 if name not in value:
                     errors.append(f"{path}: missing required property {name!r}")
-            if rule.get("additionalProperties") is False:
+            additional = rule.get("additionalProperties")
+            if additional is False:
                 for name in sorted(set(value) - set(properties)):
                     errors.append(f"{path}: additional property {name!r} is not allowed")
             for name, child in value.items():
                 child_rule = properties.get(name)
                 if isinstance(child_rule, dict):
                     visit(child, child_rule, f"{path}.{name}")
+                elif isinstance(additional, dict):
+                    visit(child, additional, f"{path}.{name}")
 
     visit(instance, schema, "$")
     return errors

@@ -9,7 +9,7 @@ Connected node outputs have already been computed and routed to inputs by the co
 call upstream nodes again. Their contracts explain the incoming values; their implementations
 are intentionally hidden.
 
-For Loop, Branch, Try, or Context, regions is a dictionary of already-implemented callbacks keyed
+For Loop, Branch, and controllers with owned bodies, regions is a dictionary of already-implemented callbacks keyed
 by owned region ID. Call regions[region_id](bindings), where bindings maps every RegionInput
 output endpoint 'node_id.port_id' to a value. The callback returns a dict keyed by RegionOutput
 input endpoints 'node_id.port_id'. Only invoke the region when control flow requires it.
@@ -19,3 +19,8 @@ initial_port -> input_boundary; output_boundary -> next iteration and final_port
 For Branch, test each condition_port in config.branches; null means else. For other nodes,
 honor the complete local behavioral contract, imports, exact APIs, effects, and exceptions.
 EffectToken outputs should propagate incoming tokens (or None when no incoming token exists).
+
+Core 0.2 nested bodies have been expanded into the same callback ABI deterministically. Implement
+only the controller; call its body callbacks and never reimplement their computations. In every mode,
+return a dictionary whose literal keys exactly equal the target node's output port IDs. Do not return
+an adjacent node's ports and do not implement an adjacent responsibility.

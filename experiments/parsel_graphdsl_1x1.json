@@ -1,7 +1,7 @@
 {
-  "name": "qwen7b-parsel-graphdsl-1x1",
+  "name": "qwen7b-parsel-graphir-core-1x1",
   "input_dir": "data/normalized",
-  "output_dir": "outputs/qwen7b-parsel-graphdsl-nodes-v3",
+  "output_dir": "outputs/qwen7b-parsel-graphir-core-v5",
   "benchmarks": ["humaneval", "mbpp", "bigcodebench", "livecodebench"],
   "official_eval_only": true,
   "generation": {
@@ -16,7 +16,7 @@
       "kind": "direct"
     },
     {
-      "name": "graphdsl-direct-1x1",
+      "name": "graphir-core-direct-1x1",
       "kind": "graphdsl",
       "planner_demonstrations": 1,
       "code_demonstrations": 1,
@@ -25,7 +25,7 @@
       "high_level_plan": false
     },
     {
-      "name": "graphdsl-plan-1x1",
+      "name": "graphir-core-plan-1x1",
       "kind": "graphdsl",
       "planner_demonstrations": 1,
       "code_demonstrations": 1,

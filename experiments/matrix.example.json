@@ -1,7 +1,7 @@
 {
-  "name": "qwen-graphdsl-main",
+  "name": "qwen-graphir-core-main",
   "input_dir": "data/normalized",
-  "output_dir": "outputs/qwen-graphdsl-main",
+  "output_dir": "outputs/qwen-graphir-core-main",
   "benchmarks": ["humaneval", "mbpp", "bigcodebench", "livecodebench", "swebench"],
   "official_eval_only": true,
   "generation": {
@@ -13,7 +13,7 @@
   "conditions": [
     {"name": "direct", "kind": "direct"},
     {
-      "name": "graphdsl-full",
+      "name": "graphir-core-full",
       "kind": "graphdsl",
       "synthesis_mode": "whole",
       "planner_demonstrations": 1,
@@ -22,7 +22,7 @@
       "validation_mode": "full"
     },
     {
-      "name": "graphdsl-no-retrieval",
+      "name": "graphir-core-no-retrieval",
       "kind": "graphdsl",
       "synthesis_mode": "whole",
       "planner_demonstrations": 0,
@@ -31,7 +31,7 @@
       "validation_mode": "full"
     },
     {
-      "name": "graphdsl-no-grammar",
+      "name": "graphir-core-no-grammar",
       "kind": "graphdsl",
       "synthesis_mode": "whole",
       "planner_demonstrations": 1,
@@ -40,7 +40,7 @@
       "validation_mode": "full"
     },
     {
-      "name": "graphdsl-no-semantic-gate",
+      "name": "graphir-core-no-semantic-gate",
       "kind": "graphdsl",
       "synthesis_mode": "whole",
       "planner_demonstrations": 1,

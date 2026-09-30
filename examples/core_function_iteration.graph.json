@@ -1,0 +1,40 @@
+{
+  "graphir_version": "0.2.0",
+  "id": "example:sum-positive-squares",
+  "title": "Sum positive squares",
+  "description": "Return the sum of the squares of positive integers in values.",
+  "interface": {
+    "mode": "function",
+    "entrypoint": "sum_positive_squares",
+    "signature": "(values: list[int]) -> int"
+  },
+  "nodes": [
+    {
+      "id": "values",
+      "kind": "Input",
+      "description": "The public list parameter; it must not be mutated.",
+      "inputs": {},
+      "outputs": {"value": "list[int]"}
+    },
+    {
+      "id": "sum_positive_squares",
+      "kind": "Compute",
+      "description": "Visit every integer in values once, add the square only when it is strictly positive, return zero for an empty or all-nonpositive list, and do not mutate values. Use O(n) time and O(1) auxiliary space.",
+      "inputs": {"values": "list[int]"},
+      "outputs": {"total": "int"},
+      "constraints": ["pure", "O(n) time", "O(1) auxiliary space"]
+    },
+    {
+      "id": "result",
+      "kind": "Output",
+      "description": "Return the accumulated integer total.",
+      "inputs": {"value": "int"},
+      "outputs": {}
+    }
+  ],
+  "edges": [
+    {"from": "values.value", "to": "sum_positive_squares.values"},
+    {"from": "sum_positive_squares.total", "to": "result.value"}
+  ],
+  "examples": [{"inputs": {"values": [-2, 3, 4]}, "outputs": {"return": 25}}]
+}

@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
 from schema_validation import load_schema, validate_schema
+from graphir_core import canonicalize_graph, is_core_graph, normalize_type, CanonicalCore
 
 
 ALLOWED_TOP_LEVEL = {
@@ -30,9 +32,18 @@ def duplicates(values: list[str]) -> list[str]:
 
 
 DEFAULT_SCHEMA = Path(__file__).resolve().parents[1] / "schemas" / "graphdsl.schema.json"
+CORE_SCHEMA = Path(__file__).resolve().parents[1] / "schemas" / "graphir-core.schema.json"
 
 
 def validate_semantics(document: dict[str, Any]) -> list[str]:
+    if is_core_graph(document):
+        shape_errors = validate_schema(document, load_schema(CORE_SCHEMA))
+        if shape_errors:
+            return ["cannot validate semantics: " + error for error in shape_errors]
+        try:
+            document = canonicalize_graph(document)
+        except (TypeError, KeyError, ValueError) as error:
+            return [f"cannot normalize GraphIR Core: {error}"]
     # Shape errors are terminal model failures, never Python exceptions/retry triggers.
     shape_errors = validate_schema(document, load_schema(DEFAULT_SCHEMA))
     if shape_errors:
@@ -90,8 +101,9 @@ def validate_semantics(document: dict[str, Any]) -> list[str]:
             errors.append(f"node {node_id}: duplicate input ports {repeated}")
         if repeated := duplicates(output_ids):
             errors.append(f"node {node_id}: duplicate output ports {repeated}")
-        if overlap := sorted(set(input_ids) & set(output_ids)):
-            errors.append(f"node {node_id}: port ids used as both input and output {overlap}")
+        if not isinstance(document, CanonicalCore):
+            if overlap := sorted(set(input_ids) & set(output_ids)):
+                errors.append(f"node {node_id}: port ids used as both input and output {overlap}")
         ports[node_id] = {
             "inputs": {port["id"]: port for port in inputs if isinstance(port, dict) and port.get("id")},
             "outputs": {port["id"]: port for port in outputs if isinstance(port, dict) and port.get("id")},
@@ -143,7 +155,9 @@ def validate_semantics(document: dict[str, Any]) -> list[str]:
             source_type = ports[source_node]["outputs"].get(source_port, {}).get("type")
             target_type = ports[target_node]["inputs"].get(target_port, {}).get("type")
             if (
-                source_type and target_type and source_type != target_type
+                source_type and target_type
+                and (normalize_type(source_type) != normalize_type(target_type)
+                     if isinstance(document, CanonicalCore) else source_type != target_type)
                 and source_type != "Any" and target_type != "Any"
             ):
                 errors.append(
@@ -189,6 +203,37 @@ def validate_semantics(document: dict[str, Any]) -> list[str]:
         isinstance(n, dict) and n.get("kind") == "Patch" for n in raw_nodes
     ):
         errors.append("repository_patch graph must contain a Patch node")
+    if mode == "function" and isinstance(document, CanonicalCore):
+        signature = interface.get("signature")
+        try:
+            parsed = ast.parse(f"def _graphir{signature}:\n    pass").body[0]
+            expected_parameters = [
+                arg.arg for arg in parsed.args.posonlyargs + parsed.args.args + parsed.args.kwonlyargs
+            ]
+            if parsed.args.vararg:
+                expected_parameters.append(parsed.args.vararg.arg)
+            if parsed.args.kwarg:
+                expected_parameters.append(parsed.args.kwarg.arg)
+            if "." in str(interface.get("entrypoint")):
+                expected_parameters = [name for name in expected_parameters if name not in {"self", "cls"}]
+            actual_parameters = [
+                node.get("config", {}).get("parameter") for node in raw_nodes
+                if isinstance(node, dict) and node.get("kind") == "Input"
+                and node.get("config", {}).get("mode") != "stdin"
+            ]
+            if Counter(expected_parameters) != Counter(actual_parameters):
+                errors.append(
+                    "function Input parameters must match the public signature: "
+                    f"expected {expected_parameters}, got {actual_parameters}"
+                )
+        except (AttributeError, SyntaxError, TypeError):
+            errors.append(f"invalid function signature {signature!r}")
+        returns = [
+            node for node in raw_nodes if isinstance(node, dict)
+            and node.get("kind") == "Output" and node.get("config", {}).get("mode") == "return"
+        ]
+        if len(returns) != 1:
+            errors.append("function graph must contain exactly one return Output")
     from graphdsl_nodes import validate_structure
     try:
         errors.extend(validate_structure(document))
@@ -202,7 +247,7 @@ def validate(
 ) -> list[str]:
     """Run the JSON Schema gate first and semantic checks second."""
 
-    active_schema = schema if schema is not None else load_schema(DEFAULT_SCHEMA)
+    active_schema = schema if schema is not None else load_schema(CORE_SCHEMA if is_core_graph(document) else DEFAULT_SCHEMA)
     schema_errors = [f"schema: {error}" for error in validate_schema(document, active_schema)]
     semantic_errors = [f"semantic: {error}" for error in validate_semantics(document)]
     return schema_errors + semantic_errors
@@ -211,12 +256,13 @@ def validate(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", type=Path, nargs="+")
-    parser.add_argument("--schema", type=Path, default=DEFAULT_SCHEMA)
+    parser.add_argument("--schema", type=Path)
     arguments = parser.parse_args()
-    schema = load_schema(arguments.schema)
     failed = False
     for path in arguments.paths:
         document = json.loads(path.read_text(encoding="utf-8"))
+        schema_path = arguments.schema or (CORE_SCHEMA if is_core_graph(document) else DEFAULT_SCHEMA)
+        schema = load_schema(schema_path)
         errors = validate(document, schema)
         if errors:
             failed = True

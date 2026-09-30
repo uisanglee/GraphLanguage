@@ -2,10 +2,10 @@
 
 Generated code is untrusted. No script in this repository executes it directly on the host.
 
-For the current node-wise GraphDSL versus unchanged upstream Parsel experiment, use
+For the current node-wise GraphIR Core versus unchanged upstream Parsel experiment, use
 `experiments/parsel_graphdsl_1x1.json` and `PARSEL_GRAPHDSL_1X1.md`. Parsel synthesis itself also runs
 in Docker because its original SCC solver executes constraints. The older matrix below describes
-the whole-artifact GraphDSL ablations, not the current node-wise comparison.
+the legacy whole-artifact GraphDSL ablations, not the current Core node-wise comparison.
 The runner now rejects silently disabled official evaluation. `--limit` selects a fixed prefix per
 benchmark; use the HumanEval/MBPP smoke matrix for a short complete evaluation.
 
@@ -13,13 +13,13 @@ benchmark; use the HumanEval/MBPP smoke matrix for a short complete evaluation.
 
 `experiments/matrix.example.json` defines the initial paper matrix:
 
-| condition | GraphDSL | retrieval | constrained decoding | validation gate |
+| condition | GraphIR | retrieval | constrained decoding | validation gate |
 |---|---:|---:|---:|---|
 | `direct` | no | no | no | artifact syntax only |
-| `graphdsl-full` | yes | yes | yes | schema + semantics |
-| `graphdsl-no-retrieval` | yes | no | yes | schema + semantics |
-| `graphdsl-no-grammar` | yes | yes | no | schema + semantics |
-| `graphdsl-no-semantic-gate` | yes | yes | yes | schema only |
+| `graphir-core-full` | yes | yes | yes | schema + semantics |
+| `graphir-core-no-retrieval` | yes | no | yes | schema + semantics |
+| `graphir-core-no-grammar` | yes | yes | no | schema + semantics |
+| `graphir-core-no-semantic-gate` | yes | yes | yes | schema only |
 
 Copy this file for an actual run and record an exact model revision instead of relying on a moving
 model alias. With the published MBPP test split (task IDs 11–510), a full five-condition run contains

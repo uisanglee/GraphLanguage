@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from retrieve_demonstrations import load_catalog, retrieve  # noqa: E402
 from run_qwen_pipeline import make_chat_payload  # noqa: E402
 from schema_validation import load_schema  # noqa: E402
-from validate_artifact import validate_artifact  # noqa: E402
+from validate_artifact import validate_artifact, strip_fence  # noqa: E402
 from validate_graph import validate  # noqa: E402
 from export_predictions import export_functional  # noqa: E402
 from build_qwen_eval import is_official_evaluation_task, safe_task  # noqa: E402
@@ -61,6 +61,16 @@ class PipelineComponentsTest(unittest.TestCase):
         self.assertEqual(
             validate_artifact("```python\ndef ok():\n    return 1\n```", "function"), []
         )
+        self.assertEqual(strip_fence("def ok():\n    return 1\n```"), "def ok():\n    return 1")
+
+    def test_graphir_core_examples_validate(self) -> None:
+        schema = load_schema(ROOT / "schemas" / "graphir-core.schema.json")
+        for name in (
+            "core_function_basic.graph.json", "core_function_iteration.graph.json",
+            "core_stdio.graph.json", "core_repository_patch.graph.json",
+        ):
+            graph = json.loads((ROOT / "examples" / name).read_text())
+            self.assertEqual(validate(graph, schema), [], name)
 
     def test_humaneval_export_adds_official_check_invocation(self) -> None:
         task = {

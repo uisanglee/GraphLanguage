@@ -1,0 +1,66 @@
+{
+  "graphir_version": "0.2.0",
+  "id": "example:repository-fix",
+  "title": "Handle empty parser input",
+  "description": "Update the parser so empty input returns an empty result instead of raising IndexError.",
+  "interface": {
+    "mode": "repository_patch",
+    "entrypoint": null,
+    "signature": null,
+    "repository": "example/parser",
+    "base_commit": "0123456789abcdef"
+  },
+  "nodes": [
+    {
+      "id": "issue",
+      "kind": "Input",
+      "description": "The requirement that empty parser input return the established empty result without changing non-empty behavior.",
+      "inputs": {},
+      "outputs": {"requirement": "str"}
+    },
+    {
+      "id": "locate_parser",
+      "kind": "Locate",
+      "description": "Locate, without guessing a path, the Python parser function that indexes the first token and causes the reported empty-input failure.",
+      "inputs": {"requirement": "str"},
+      "outputs": {"symbol": "Artifact[Function]"}
+    },
+    {
+      "id": "edit_parser",
+      "kind": "Edit",
+      "description": "Produce the smallest change to the located function that returns the repository's existing empty-result representation for empty input and preserves all non-empty behavior.",
+      "inputs": {"symbol": "Artifact[Function]", "requirement": "str"},
+      "outputs": {"change": "Patch[Function]"}
+    },
+    {
+      "id": "regression_test",
+      "kind": "Test",
+      "description": "Add a regression test for empty input and preserve the existing parser test suite; return the change only when both requirements are represented.",
+      "inputs": {"change": "Patch[Function]"},
+      "outputs": {"verified": "Patch[Function]"}
+    },
+    {
+      "id": "patch",
+      "kind": "Patch",
+      "description": "Combine the verified minimal change into one applicable unified diff against the supplied base commit.",
+      "inputs": {"change": "Patch[Function]"},
+      "outputs": {"diff": "Patch[Repository]"}
+    },
+    {
+      "id": "result",
+      "kind": "Output",
+      "description": "Return only the applicable unified diff.",
+      "inputs": {"patch": "Patch[Repository]"},
+      "outputs": {}
+    }
+  ],
+  "edges": [
+    {"from": "issue.requirement", "to": "locate_parser.requirement"},
+    {"from": "issue.requirement", "to": "edit_parser.requirement"},
+    {"from": "locate_parser.symbol", "to": "edit_parser.symbol"},
+    {"from": "edit_parser.change", "to": "regression_test.change"},
+    {"from": "regression_test.verified", "to": "patch.change"},
+    {"from": "patch.diff", "to": "result.patch"}
+  ],
+  "constraints": ["Minimal patch", "No behavior change for non-empty input"]
+}

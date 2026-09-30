@@ -17,6 +17,7 @@ from validate_graph import validate
 from inference_journal import JournalClient
 from build_qwen_eval import iter_records, normalize_interface
 from official_results import load_official
+from graphir_core import canonicalize_graph
 import run_qwen_pipeline
 
 
@@ -82,6 +83,24 @@ class NodesTest(unittest.TestCase):
         node = self.graph['nodes'][2]
         self.assertTrue(check_node_source('def wrong():\n    pass',node))
         self.assertTrue(check_node_source(self.implementations()['sum_loop']+'\ndef extra(): pass',node))
+
+    def test_literal_output_keys_must_match_ports(self):
+        node = self.graph['nodes'][3]
+        wrong = f"def {symbol(node['id'])}(inputs, regions):\n    return {{'wrong': 1}}"
+        self.assertTrue(check_node_source(wrong, node))
+
+    def test_core_graph_normalizes_and_compiles_without_regions(self):
+        core = json.loads((ROOT / 'examples/core_function_iteration.graph.json').read_text())
+        graph = canonicalize_graph(core)
+        compute = next(node for node in graph['nodes'] if node['kind'] == 'Compute')
+        implementation = (
+            f"def {symbol(compute['id'])}(inputs, regions):\n"
+            "    return {'total': sum(value * value for value in inputs['values'] if value > 0)}"
+        )
+        namespace = {}
+        exec(compile_graph(core, {compute['id']: implementation}), namespace)
+        self.assertEqual(namespace['sum_positive_squares']([-2, 3, 4]), 25)
+        self.assertEqual(node_request(graph, compute)['region_callbacks'], {})
 
     def test_all_lcb_starters_classified(self):
         corpus = ROOT / 'data/normalized/livecodebench.jsonl'
@@ -184,7 +203,7 @@ with tempfile.TemporaryDirectory() as d:
                 else: content = implementations[json.loads(messages[-1]['content'])['node']['id']]
                 return content,{'usage':{'total_tokens':1}}
             argv = ['run_qwen_pipeline','--input',str(request),'--output',str(output),'--model','fake',
-                    '--num-code-demonstrations','0']
+                    '--num-code-demonstrations','0','--schema',str(ROOT/'schemas/graphdsl.schema.json')]
             with patch.object(sys,'argv',argv), patch.object(run_qwen_pipeline.Client,'complete',autospec=True,side_effect=completion) as mocked:
                 run_qwen_pipeline.main()
                 run_qwen_pipeline.main()

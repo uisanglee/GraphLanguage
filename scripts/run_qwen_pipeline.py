@@ -27,6 +27,7 @@ from validate_artifact import strip_fence, validate_artifact
 from validate_graph import validate_semantics
 from graphdsl_nodes import BOUNDARIES, node_request, check_node_source, compile_graph, node_demonstrations
 from inference_journal import JournalClient, run_identity
+from graphir_core import canonicalize_graph
 
 
 def make_chat_payload(
@@ -47,7 +48,7 @@ def make_chat_payload(
         payload["response_format"] = {
             "type": "json_schema",
             "json_schema": {
-                "name": "python_graphdsl_0_1",
+                "name": "graphir_core_0_2",
                 "strict": True,
                 "schema": schema,
             },
@@ -76,14 +77,7 @@ def selected_requests(path: Path, limit: int | None):
 def parse_graph(
     content: str, schema: dict[str, Any]
 ) -> tuple[dict[str, Any] | None, list[str], list[str]]:
-    text = content.strip()
-    if text.startswith("```"):
-        lines = text.splitlines()
-        if lines and lines[0].startswith("```"):
-            lines = lines[1:]
-        if lines and lines[-1].strip() == "```":
-            lines = lines[:-1]
-        text = "\n".join(lines)
+    text = strip_fence(content)
     try:
         value = json.loads(text)
     except json.JSONDecodeError as error:
@@ -192,7 +186,7 @@ def main() -> None:
     )
     parser.add_argument("--api-key", default=os.environ.get("OPENAI_API_KEY", ""))
     parser.add_argument("--code-system-prompt", type=Path, default=Path("prompts/graphdsl_to_python.md"))
-    parser.add_argument("--schema", type=Path, default=Path("schemas/graphdsl.schema.json"))
+    parser.add_argument("--schema", type=Path, default=Path("schemas/graphir-core.schema.json"))
     parser.add_argument(
         "--constraint-mode",
         choices=["response_format", "structured_outputs", "none"],
@@ -313,19 +307,25 @@ def main() -> None:
                     }
                 )
                 if graph_accepted and graph is not None:
-                    interface = graph["interface"]["mode"]
+                    executable_graph = canonicalize_graph(graph)
+                    if executable_graph is not graph:
+                        record["graph_canonical"] = executable_graph
+                    interface = executable_graph["interface"]["mode"]
                     record['synthesis_mode'] = args.synthesis_mode
                     if args.synthesis_mode == 'nodes':
                         implementations = {}
                         record['node_results'] = {}
-                        for node in graph['nodes']:
+                        for node in executable_graph['nodes']:
                             if node['kind'] in BOUNDARIES:
                                 continue
-                            demo_messages, demo_ids = node_demonstrations(node,args.num_code_demonstrations)
+                            dialect = "core-0.2" if executable_graph.get("metadata", {}).get("graphir_core_version") else "legacy-0.1"
+                            demo_messages, demo_ids = node_demonstrations(
+                                node, args.num_code_demonstrations, dialect=dialect
+                            )
                             raw_code, inference = synthesizer.complete([
                                 {'role':'system', 'content':node_system},
                                 *demo_messages,
-                                {'role':'user', 'content':json.dumps(node_request(graph, node), ensure_ascii=False)},
+                                {'role':'user', 'content':json.dumps(node_request(executable_graph, node), ensure_ascii=False)},
                             ], args.max_node_tokens, args.temperature)
                             record['llm_calls'] += 1
                             code = strip_fence(raw_code)
@@ -343,7 +343,7 @@ def main() -> None:
                             implementations[node['id']] = code
                         else:
                             try:
-                                record['generated_artifact'] = compile_graph(graph, implementations)
+                                record['generated_artifact'] = compile_graph(executable_graph, implementations)
                                 record['artifact_errors'] = validate_artifact(record['generated_artifact'], interface)
                             except (ValueError, SyntaxError, KeyError) as error:
                                 record['artifact_errors'] = [str(error)]

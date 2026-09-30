@@ -1,30 +1,32 @@
-# GraphDSL node generation pipeline
+# GraphIR Core node generation pipeline
 
 The default synthesis mode is now nodes. See PARSEL_GRAPHDSL_1X1.md for the comparison protocol.
 
-1. A compact planner prompt plus optional retrieved task/graph examples produces one GraphDSL.
+1. A compact planner prompt plus an optional retrieved task/graph example produces one Core graph.
 2. JSON-Schema-constrained decoding restricts its shape. Schema and semantic checks then validate
-   ports, region ownership, acyclicity, loop bindings and controller contracts.
-3. Each executable node is generated once from its local contract and neighbor/owned-region
+   ports, acyclicity, type compatibility and required connections.
+3. Each executable node is generated once from its local contract and neighboring
    contracts using prompts/graphdsl_node_to_python.md.
 4. The compiler validates a single exact-signature function, keeps node imports local, and wires
    all edges mechanically. It never asks an LLM to assemble or rewrite the final program.
 5. Syntax checks precede the separate Docker benchmark evaluator.
 
-Boundary nodes Input/Output/Literal/RegionInput/RegionOutput are deterministic. For other nodes:
+Boundary nodes Input/Output/Literal are deterministic. For other nodes:
 def <stable_node_symbol>(inputs, regions) returns a dict with exactly the declared output port IDs.
-Owned regions are callbacks accepting RegionInput endpoint keys and returning RegionOutput keys.
 The original task, graph-wide problem description, and other generated source are excluded from
 node synthesis requests. This enforces the information boundary, not semantic correctness.
 
-The executable profile defines Loop carried state and Branch region_bindings in GRAPHDSL_SPEC.md.
+Core 0.2 infers regions and carried bindings from nested body graphs and matching port names.
+Ordinary Python control flow can stay inside Compute; explicit Loop/Branch calls its owned body
+callbacks, whose executable nodes are independently synthesized. Legacy 0.1
+region behavior remains supported only for reproduction and is documented in GRAPHDSL_SPEC.md.
 Descriptions must support reimplementation; that property is an evaluation hypothesis and is not
 proven by schema validation.
 
 Retrieval: planner demonstrations use the existing catalog. Node synthesis uses the hand-authored
 demonstrations/node_catalog.json, filtered by kind and ranked lexically. A missing matching example
 means zero examples. IDs are logged. The default comparison uses one synthetic format demonstration
-for GraphDSL planning, node synthesis, and NL-to-Parsel; zero demonstrations is an explicitly
+for GraphIR planning, node synthesis, and NL-to-Parsel; zero demonstrations is an explicitly
 labeled ablation. The old --synthesis-mode whole is available only as an explicitly labeled
 ablation or for repository patch experiments.
 

@@ -1,0 +1,190 @@
+{
+  "graphir_version": "0.2.0",
+  "interface": {
+    "mode": "function",
+    "entrypoint": "sum_positive_squares",
+    "signature": "(values: list[int]) -> int"
+  },
+  "nodes": [
+    {
+      "id": "values",
+      "kind": "Input",
+      "description": "The public input list.",
+      "inputs": {},
+      "outputs": {
+        "value": "list[int]"
+      }
+    },
+    {
+      "id": "zero",
+      "kind": "Literal",
+      "description": "Initial sum zero.",
+      "inputs": {},
+      "outputs": {
+        "value": "int"
+      },
+      "config": {
+        "value": 0
+      }
+    },
+    {
+      "id": "scan",
+      "kind": "Loop",
+      "description": "Visit values once; carry total through the body. Empty input preserves the initial total.",
+      "inputs": {
+        "items": "list[int]",
+        "total": "int"
+      },
+      "outputs": {
+        "total": "int"
+      },
+      "control": {
+        "for_each": "items",
+        "item": "item",
+        "state": [
+          "total"
+        ]
+      },
+      "body": {
+        "inputs": {
+          "item": "int",
+          "total": "int"
+        },
+        "outputs": {
+          "total": "int"
+        },
+        "nodes": [
+          {
+            "id": "positive",
+            "kind": "Compute",
+            "description": "Return whether item is strictly greater than zero.",
+            "inputs": {
+              "item": "int"
+            },
+            "outputs": {
+              "yes": "bool"
+            }
+          },
+          {
+            "id": "choose",
+            "kind": "Branch",
+            "description": "Execute the add-square body only when yes is true; otherwise retain total.",
+            "inputs": {
+              "yes": "bool",
+              "item": "int",
+              "total": "int"
+            },
+            "outputs": {
+              "total": "int"
+            },
+            "branches": [
+              {
+                "when": "yes",
+                "body": {
+                  "inputs": {
+                    "item": "int",
+                    "total": "int"
+                  },
+                  "outputs": {
+                    "total": "int"
+                  },
+                  "nodes": [
+                    {
+                      "id": "add",
+                      "kind": "Compute",
+                      "description": "Return total plus item squared, without mutation.",
+                      "inputs": {
+                        "item": "int",
+                        "total": "int"
+                      },
+                      "outputs": {
+                        "total": "int"
+                      }
+                    }
+                  ],
+                  "edges": [
+                    {
+                      "from": "$input.item",
+                      "to": "add.item"
+                    },
+                    {
+                      "from": "$input.total",
+                      "to": "add.total"
+                    },
+                    {
+                      "from": "add.total",
+                      "to": "$output.total"
+                    }
+                  ]
+                }
+              },
+              {
+                "when": null,
+                "body": {
+                  "inputs": {
+                    "total": "int"
+                  },
+                  "outputs": {
+                    "total": "int"
+                  },
+                  "nodes": [],
+                  "edges": [
+                    {
+                      "from": "$input.total",
+                      "to": "$output.total"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "$input.item",
+            "to": "positive.item"
+          },
+          {
+            "from": "positive.yes",
+            "to": "choose.yes"
+          },
+          {
+            "from": "$input.item",
+            "to": "choose.item"
+          },
+          {
+            "from": "$input.total",
+            "to": "choose.total"
+          },
+          {
+            "from": "choose.total",
+            "to": "$output.total"
+          }
+        ]
+      }
+    },
+    {
+      "id": "result",
+      "kind": "Output",
+      "description": "Return the sum.",
+      "inputs": {
+        "value": "int"
+      },
+      "outputs": {}
+    }
+  ],
+  "edges": [
+    {
+      "from": "values.value",
+      "to": "scan.items"
+    },
+    {
+      "from": "zero.value",
+      "to": "scan.total"
+    },
+    {
+      "from": "scan.total",
+      "to": "result.value"
+    }
+  ]
+}

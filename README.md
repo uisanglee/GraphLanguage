@@ -1,4 +1,4 @@
-# Python GraphDSL benchmark lab
+# Python GraphIR benchmark lab
 
 이 저장소는 자연어 문제를 하나의 편집 가능한 그래프로 바꾸고, 같은 그래프에서
 Python 코드 또는 repository patch를 생성하는 실험용 규격과 데이터 파이프라인이다.
@@ -14,7 +14,7 @@ Python 코드 또는 repository patch를 생성하는 실험용 규격과 데이
 합계는 5,627 task이며, prompt variant를 모두 펼치면 현재 corpus에서 8,486개의 Qwen
 요청이 만들어진다.
 
-GraphDSL의 원칙은 두 가지다.
+GraphIR의 원칙은 두 가지다.
 
 1. 하나의 canonical graph만 존재한다. 텍스트 표현과 캔버스는 같은 graph를 보는 두 view다.
 2. edge는 오직 `source output port -> target input port` 연결이다. 조건, 순서, 타입,
@@ -22,13 +22,15 @@ GraphDSL의 원칙은 두 가지다.
 
 ## 파일
 
-- `docs/GRAPHDSL_SPEC.md`: node, port, region, edge의 규범적 설계
-- `schemas/graphdsl.schema.json`: JSON Schema Draft 2020-12
+- `docs/GRAPHDSL_SPEC.md`: 재현성을 위해 보존한 legacy 0.1 규격
+- `schemas/graphir-core.schema.json`: 기본 model-facing GraphIR Core 0.2 schema
+- `schemas/graphdsl.schema.json`: 재현성을 위해 보존한 legacy GraphDSL 0.1 schema
 - `prompts/nl_to_graphdsl.md`: Qwen용 자연어 -> GraphDSL system prompt
 - `prompts/graphdsl_to_python.md`: Qwen용 GraphDSL -> Python/patch system prompt
 - `docs/PIPELINE.md`: compact prompt, constrained decoding, validation, retrieval 실행 방법
 - `docs/EVALUATION.md`: 실험 matrix, sandbox와 공식 evaluator 실행 방법
-- `docs/PARSEL_GRAPHDSL_1X1.md`: Parsel/GraphDSL의 Qwen 7B 단일후보 비교 프로토콜
+- `docs/GRAPHIR_CORE_SPEC.md`: 단순화된 Core 0.2 언어와 deterministic normalization
+- `docs/PARSEL_GRAPHDSL_1X1.md`: Parsel/GraphIR의 Qwen 7B 단일후보 비교 프로토콜
 - `docs/PUBLIC_GITHUB_RELEASE.md`: 공개 GitHub 저장소 최초 배포 및 업데이트 절차
 - `experiments/matrix.example.json`: direct/full/ablation 실험 설정 예시
 - `demonstrations/`: 오염 여부를 감사할 수 있는 planner/synthesizer few-shot catalog
@@ -126,8 +128,8 @@ python scripts/run_qwen_pipeline.py \
 
 두 단계를 분리해 기록한다.
 
-- `NL -> GraphDSL`: JSON parse rate, schema-valid rate, semantic-valid rate
-- `GraphDSL -> Python`: 원 benchmark의 pass@1 또는 resolved rate
+- `NL -> GraphIR`: JSON parse rate, schema-valid rate, semantic-valid rate
+- `GraphIR -> Python`: 원 benchmark의 pass@1 또는 resolved rate
 - end-to-end: 원 prompt에서 최종 실행 성공까지의 비율
 - editability: 한 node description 변경 시 바뀐 Python line/symbol 범위
 
@@ -136,8 +138,10 @@ python scripts/run_qwen_pipeline.py \
 
 ## Parsel과 1×1 비교
 
-GraphDSL은 현재 노드별 함수를 생성하고 edge를 결정론적으로 연결한다. Loop/Branch는
-구현된 내부 region callback을 호출한다. `--synthesis-mode whole`은 종전 전체 합성 방식이다.
+GraphIR Core는 노드별 함수를 생성하고 edge를 결정론적으로 연결한다. 일반적인 Python
+Loop/Branch는 Compute 내부의 지역 제어 흐름으로 둘 수 있다. 명시적 Loop/Branch는 중첩
+body 그래프를 소유하며, 경계 및 상태 연결을 compiler가 자동 확장한다. body의 각 노드는
+독립 구현되고 controller가 callback으로 호출한다. `--synthesis-mode whole`은 전체 합성 ablation이다.
 
 Parsel은 `third_party/parsel`의 고정 원본 커밋을 수정 없이 Docker 안에서 실행한다.
 직접 만든 parser/assembler는 제거했다. 원본 CodeGen까지 사용하며 API 전송만 로컬 Qwen
