@@ -1,5 +1,32 @@
 # Named contracts and deterministic graph construction (v9)
 
+## Fixed public interfaces (v10)
+
+Use `parsel_graphdsl_smoke_v10.json`, `parsel_graphdsl_full_v10.json`, or
+`parsel_graphdsl_humaneval_v10.json` after this update. Fresh output directories keep earlier
+experiments separate. The HumanEval-only configuration contains GraphIR Direct/Plan and
+Parsel Direct/Plan, without the direct-Python baseline.
+
+When a named function/method signature can be extracted from public starter code, request
+preparation supplies `fixed_interface` and `available_inputs`. Per-task constrained decoding
+removes `interface` from the model's output schema, and retrieved examples use the same shape.
+The compiler injects the original parameter spelling, defaults, positional/keyword conventions,
+annotations and return annotation. It parses syntax only and does not execute starter code.
+Formatting may be normalized by Python AST rendering. Needs still must reference exact names;
+unknown names are rejected rather than guessed. Without a usable starter signature the existing
+model-authored interface path remains available (notably MBPP). The shared high-level planning
+task excludes these compiler metadata fields to preserve the GraphIR/Parsel comparison.
+
+Tests cover the HumanEval `delimeter` spelling, method signatures and incomplete function
+prefixes, default parameters, request examples and end-to-end mock generation. Live Qwen
+accuracy must be measured again.
+
+```sh
+python scripts/run_experiments.py --config experiments/parsel_graphdsl_humaneval_v10.json --stage all
+```
+
+The rest of this document describes the underlying contract format and v9 introduction.
+
 Use `experiments/parsel_graphdsl_smoke_v9.json` and `parsel_graphdsl_full_v9.json` for the
 new `planner_format: contracts` condition. Existing v8 configurations keep explicit graph
 generation so a running experiment is not silently changed. Both Direct and Plan use the

@@ -28,7 +28,7 @@ from validate_graph import validate_semantics
 from graphdsl_nodes import BOUNDARIES, node_request, check_node_source, compile_graph, node_demonstrations
 from inference_journal import JournalClient, run_identity
 from graphir_core import canonicalize_graph
-from graphir_contracts import compile_contracts, COMPILER_VERSION
+from graphir_contracts import compile_contracts, COMPILER_VERSION, contract_schema, prepare_contract_task
 
 
 def make_chat_payload(
@@ -291,12 +291,25 @@ def main() -> None:
                 synthesizer = JournalClient(synthesizer_client, task_journal / 'synthesizer')
                 record["llm_calls"] = 0
                 graph_messages = request["messages"]
+                task = json.loads(request['messages'][-1]['content']) if args.planner_format == 'contracts' else None
+                request_schema = contract_schema(schema, task) if task is not None else schema
+                if task is not None:
+                    task = prepare_contract_task(task)
+                    graph_messages = [dict(message) for message in graph_messages]
+                    graph_messages[-1]['content'] = json.dumps(task, ensure_ascii=False)
+                    record['fixed_interface'] = task.get('fixed_interface')
+                    record['planner_schema_sha256'] = hashlib.sha256(json.dumps(request_schema, sort_keys=True).encode()).hexdigest()
                 if args.high_level_plan:
+                    # Keep the task used for shared GraphIR/Parsel plans identical.
+                    plan_message = request['messages'][-1]
+                    if task is not None:
+                        plan_task = {k: v for k, v in task.items() if k not in {'fixed_interface', 'available_inputs'}}
+                        plan_message = {'role': 'user', 'content': json.dumps(plan_task, ensure_ascii=False)}
                     plan_client = JournalClient(planner_client, (args.plans_dir or args.output.parent / 'plans') / task_key)
                     plan_text, plan_timing = plan_client.complete(
                         [
                             {"role": "system", "content": plan_system},
-                            request["messages"][-1],
+                            plan_message,
                         ],
                         args.max_plan_tokens,
                         args.temperature,
@@ -307,14 +320,14 @@ def main() -> None:
                     record["llm_calls"] += 1
                 graph_text, graph_timing = planner.complete(
                     graph_messages, args.max_graph_tokens, args.temperature,
-                    schema=schema, constraint_mode=args.constraint_mode,
+                    schema=request_schema, constraint_mode=args.constraint_mode,
                 )
                 record["llm_calls"] += 1
                 if args.planner_format == 'contracts':
                     record['contract_raw'] = graph_text
                     record['contract_compiler_version'] = COMPILER_VERSION
                     contracts, graph, graph_schema_errors, graph_semantic_errors = parse_contracts(
-                        graph_text, schema, json.loads(request['messages'][-1]['content']))
+                        graph_text, request_schema, task)
                     record['contracts'] = contracts
                     record['contract_schema_errors'] = graph_schema_errors
                     record['contract_compile_errors'] = graph_semantic_errors

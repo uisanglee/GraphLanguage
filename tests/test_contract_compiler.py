@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
-from graphir_contracts import compile_contracts, signature_info, SCHEMA
+from graphir_contracts import compile_contracts, signature_info, SCHEMA, fixed_interface, prepare_contract_task, contract_schema
 from graphir_core import canonicalize_graph
 from graphdsl_nodes import compile_graph, symbol, BOUNDARIES
 from schema_validation import load_schema, validate_schema
@@ -77,8 +77,7 @@ class ContractCompiler(unittest.TestCase):
         doc = example('basic')
         task = dict(entrypoint='absolute_distance', interface_mode='function',
                     starter_code='def absolute_distance(a: float, b: float = 2) -> float:\n    pass')
-        with self.assertRaisesRegex(ValueError, 'parameters/defaults'):
-            compile_contracts(doc, task)
+        self.assertIn('b: float=2', compile_contracts(doc, task)['interface']['signature'])
         doc['interface']['signature'] = '(a: int, b: int = 2) -> int'
         graph = compile_contracts(doc, task)
         self.assertEqual(graph['interface']['signature'], '(a: float, b: float=2) -> float')
@@ -93,6 +92,63 @@ class ContractCompiler(unittest.TestCase):
         self.assertEqual(params['kwargs'], 'dict[str, str]')
         doc = dict(contract_version='1.0', interface=interface, steps=[], **{'return':'node_0'})
         self.assertEqual(validate(compile_contracts(doc)), [])
+
+    def test_fixed_spelling_schema_and_compilation(self):
+        task = dict(entrypoint='intersperse', interface_mode='function',
+                    starter_code='def intersperse(numbers: list[int], delimeter: int) -> list[int]:\n    pass')
+        prepared = prepare_contract_task(task)
+        self.assertEqual(prepared['available_inputs'], {'numbers':'list[int]', 'delimeter':'int'})
+        schema = contract_schema(load_schema(SCHEMA), prepared)
+        doc = dict(contract_version='1.0', steps=[step('Insert delimeter between consecutive numbers.',
+                   ['numbers', 'delimeter'], {'answer':'list[int]'})], **{'return':'answer'})
+        _, graph, shape, errors = parse_contracts(json.dumps(doc), schema, prepared)
+        self.assertEqual(shape + errors, [])
+        self.assertEqual(graph['interface'], prepared['fixed_interface'])
+        doc['interface'] = dict(prepared['fixed_interface'], signature='(numbers, delimiter)')
+        self.assertTrue(parse_contracts(json.dumps(doc), schema, prepared)[2])
+        del doc['interface']
+        doc['steps'][0]['needs'][1] = 'delimiter'
+        self.assertIn('unknown or forward', parse_contracts(json.dumps(doc), schema, prepared)[3][0])
+
+    def test_fixed_method_prefix_and_missing_starter_fallback(self):
+        task = dict(entrypoint='Solution.run', interface_mode='function',
+                    starter_code='class Solution:\n    def run(self, items: list[int], /, *, flag: bool = False) -> int:')
+        fixed = fixed_interface(task)
+        self.assertEqual(fixed['entrypoint'], 'Solution.run')
+        self.assertIn('flag: bool=False', fixed['signature'])
+        self.assertEqual(signature_info(fixed)[0]['items'], 'list[int]')
+        self.assertIsNone(fixed_interface(dict(task, starter_code='')))
+        self.assertEqual(contract_schema(load_schema(SCHEMA), dict(task, starter_code='')), load_schema(SCHEMA))
+
+    def test_fixed_request_builder_and_pipeline(self):
+        doc = example('basic'); del doc['interface']
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            task = dict(id='humaneval:fixture', benchmark='humaneval', split='test', interface='function',
+                        entrypoint='absolute_distance', starter_code='def absolute_distance(a: float, b: float) -> float:\n    pass',
+                        prompt={'primary':'Return absolute difference of a and b.'})
+            (directory/'humaneval.jsonl').write_text(json.dumps(task)+'\n')
+            requests, output = directory/'requests.jsonl', directory/'results.jsonl'
+            argv = ['builder', '--input-dir', tmp, '--output', str(requests), '--benchmarks', 'humaneval', '--planner-format', 'contracts', '--num-demonstrations', '2']
+            with patch.object(sys, 'argv', argv): build_qwen_eval.main()
+            request = json.loads(requests.read_text())
+            self.assertIn('fixed_interface', json.loads(request['messages'][-1]['content']))
+            for message in request['messages']:
+                if message['role'] == 'assistant':
+                    self.assertNotIn('interface', json.loads(message['content']))
+            def complete(client, messages, *args, **kwargs):
+                if kwargs.get('schema'):
+                    self.assertNotIn('interface', kwargs['schema']['properties'])
+                    self.assertEqual(json.loads(messages[-1]['content'])['available_inputs'], {'a':'float','b':'float'})
+                    return json.dumps(doc), {'usage':{'total_tokens':1}}
+                payload = json.loads(messages[-1]['content'])
+                return payload['signature'] + "\n    return {'distance': abs(inputs['a'] - inputs['b'])}", {'usage':{'total_tokens':1}}
+            argv = ['pipeline', '--input', str(requests), '--output', str(output), '--model', 'fixture', '--planner-format', 'contracts', '--num-code-demonstrations', '0']
+            with patch.object(sys, 'argv', argv), patch.object(run_qwen_pipeline.Client, 'complete', autospec=True, side_effect=complete):
+                run_qwen_pipeline.main()
+            row = json.loads(output.read_text())
+            self.assertTrue(row['artifact_valid'])
+            self.assertEqual(row['graph']['interface'], row['fixed_interface'])
 
     def test_nested_branch_captures_and_lazy_execution(self):
         doc = example('branch')

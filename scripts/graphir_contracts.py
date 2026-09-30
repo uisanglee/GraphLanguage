@@ -4,6 +4,7 @@ Names identify values, not Python expressions. Each scope is single assignment.
 No generated code or annotation is evaluated by this compiler.
 """
 import ast
+import copy
 import keyword
 from pathlib import Path
 
@@ -12,7 +13,7 @@ from schema_validation import load_schema, validate_schema
 from validate_graph import validate
 
 SCHEMA = Path(__file__).resolve().parents[1] / 'schemas/graphir-contracts.schema.json'
-COMPILER_VERSION = 'contracts-1'
+COMPILER_VERSION = 'contracts-2-fixed-interface'
 
 
 def identifier(name):
@@ -55,7 +56,59 @@ def signature_info(interface):
     return params, normalize_type(ast.unparse(fn.returns)) if fn.returns else 'Any'
 
 
+def fixed_interface(task):
+    """Extract only the named public definition from starter syntax; never execute it."""
+    if not task or task.get('interface_mode') != 'function' or not task.get('entrypoint'):
+        return None
+    starter = task.get('starter_code', '')
+    if not starter.strip():
+        return None
+    try:
+        tree = ast.parse(starter)
+    except SyntaxError:
+        # Common completion prefix ends at a signature with no body yet.
+        try:
+            tree = ast.parse(starter + '\n' + ('        ' if '.' in task['entrypoint'] else '    ') + 'pass\n')
+        except SyntaxError:
+            return None
+    parts = task['entrypoint'].split('.')
+    if len(parts) not in (1, 2):
+        return None
+    owners = tree.body if len(parts) == 1 else next(
+        (n.body for n in tree.body if isinstance(n, ast.ClassDef) and n.name == parts[0]), [])
+    original = next((n for n in owners if isinstance(n, ast.FunctionDef) and n.name == parts[-1]), None)
+    if original is None:
+        return None
+    signature = '(' + ast.unparse(original.args) + ')'
+    if original.returns:
+        signature += ' -> ' + ast.unparse(original.returns)
+    interface = dict(mode='function', entrypoint=task['entrypoint'], signature=signature)
+    signature_info(interface)
+    return interface
+
+
+def prepare_contract_task(task):
+    task = dict(task)
+    interface = fixed_interface(task)
+    if interface:
+        task['fixed_interface'] = interface
+        task['available_inputs'] = signature_info(interface)[0]
+    return task
+
+
+def contract_schema(schema, task):
+    """The model cannot emit an interface when the public starter supplies one."""
+    schema = copy.deepcopy(schema)
+    if fixed_interface(task):
+        schema['required'] = [key for key in schema['required'] if key != 'interface']
+        schema['properties'].pop('interface', None)
+    return schema
+
+
 def compile_contracts(document, task=None):
+    authoritative = fixed_interface(task)
+    if authoritative and isinstance(document, dict):
+        document = dict(document, interface=authoritative)
     errors = validate_schema(document, load_schema(SCHEMA))
     if errors:
         raise ValueError('; '.join(errors))
@@ -66,35 +119,6 @@ def compile_contracts(document, task=None):
             raise ValueError('public interface mode differs from task')
         if task.get('entrypoint') and interface['entrypoint'] != task['entrypoint']:
             raise ValueError('public entrypoint differs from task')
-        # Use public starter syntax, never reference solutions, to check the signature.
-        starter = task.get('starter_code', '')
-        if starter and interface['mode'] == 'function':
-            try:
-                tree = ast.parse(starter)
-            except SyntaxError:
-                tree = None
-            if tree:
-                parts = interface['entrypoint'].split('.')
-                owners = tree.body if len(parts) == 1 else next(
-                    (n.body for n in tree.body if isinstance(n, ast.ClassDef) and n.name == parts[0]), [])
-                original = next((n for n in owners if isinstance(n, ast.FunctionDef) and n.name == parts[-1]), None)
-                if original:
-                    expected = '(' + ast.unparse(original.args) + ')'
-                    if original.returns:
-                        expected += ' -> ' + ast.unparse(original.returns)
-                    check = dict(interface, signature=expected)
-                    declared = ast.parse(f'def f{interface["signature"]}:\n    pass').body[0]
-                    if ast.dump(declared.args) != ast.dump(original.args):
-                        # Equivalent annotations use the authoritative starter spelling.
-                        for arg in ast.walk(declared.args):
-                            if isinstance(arg, ast.arg): arg.annotation = None
-                        public_args = ast.parse(f'def f{expected}:\n    pass').body[0].args
-                        for arg in ast.walk(public_args):
-                            if isinstance(arg, ast.arg): arg.annotation = None
-                        if ast.dump(declared.args) != ast.dump(public_args):
-                            raise ValueError('public parameters/defaults differ from starter')
-                    interface = check
-                    params, return_type = signature_info(interface)
 
     counter = 0
     reserved = set(params)

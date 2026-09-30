@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from retrieve_demonstrations import load_catalog, planner_demo_messages, retrieve
+from graphir_contracts import prepare_contract_task
 
 
 def iter_records(input_dir: Path, selected: set[str] | None) -> Iterator[dict[str, Any]]:
@@ -136,6 +137,8 @@ def main() -> None:
                 raise ValueError('Repository editing is outside the compact GraphIR generation profile')
             for variant, prompt_text in variants(record, args.expand_variants):
                 task = safe_task(record, prompt_text, variant)
+                if args.planner_format == 'contracts':
+                    task = prepare_contract_task(task)
                 demonstrations = retrieve(
                     catalog,
                     query="\n".join([prompt_text, record.get("starter_code", "")]),
@@ -147,7 +150,7 @@ def main() -> None:
                     "custom_id": f"{record['id']}:{variant}",
                     "messages": [
                         {"role": "system", "content": system},
-                        *planner_demo_messages(demonstrations),
+                        *planner_demo_messages(demonstrations, fixed_contract_interface='fixed_interface' in task),
                         {
                             "role": "user",
                             "content": json.dumps(task, ensure_ascii=False),

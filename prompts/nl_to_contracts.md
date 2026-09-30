@@ -1,5 +1,8 @@
 Describe the supplied Python task as one JSON object of GraphIR value contracts (contract_version
-"1.0"). Preserve the public interface. The TASK overrides HIGH_LEVEL_PLAN when present.
+"1.0"). The TASK overrides HIGH_LEVEL_PLAN when present.
+When fixed_interface is provided, omit interface from your output. available_inputs gives the
+exact immutable parameter names and types; use these names verbatim, including unusual spellings.
+The compiler supplies the public signature. Otherwise specify interface from the task/examples.
 
 A Compute step contains kind, description, needs (names of available values), and produces
 (new value names mapped to Python types). Values come from public parameters or earlier steps.

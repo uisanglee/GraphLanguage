@@ -92,7 +92,7 @@ def retrieve(
     return selected
 
 
-def planner_demo_messages(items: list[dict[str, Any]]) -> list[dict[str, str]]:
+def planner_demo_messages(items: list[dict[str, Any]], fixed_contract_interface=False) -> list[dict[str, str]]:
     messages: list[dict[str, str]] = []
     for item in items:
         task = {
@@ -101,9 +101,15 @@ def planner_demo_messages(items: list[dict[str, Any]]) -> list[dict[str, str]]:
             "interface_mode": item["interface"],
             "task": item["task"],
         }
+        answer = item['graph']
+        if fixed_contract_interface and 'contract_version' in answer:
+            from graphir_contracts import signature_info
+            answer = dict(answer)
+            task['fixed_interface'] = answer.pop('interface')
+            task['available_inputs'] = signature_info(task['fixed_interface'])[0]
         messages.extend([
             {"role": "user", "content": json.dumps(task, ensure_ascii=False, separators=(",", ":"))},
-            {"role": "assistant", "content": json.dumps(item["graph"], ensure_ascii=False, separators=(",", ":"))},
+            {"role": "assistant", "content": json.dumps(answer, ensure_ascii=False, separators=(",", ":"))},
         ])
     return messages
 
