@@ -44,7 +44,11 @@ class ContractCompiler(unittest.TestCase):
         self.assertTrue(validate_schema(bad, schema))
         bad = example('basic')
         bad['steps'][0]['produces'] = {'not.a.name': 'int'}
-        self.assertTrue(validate_schema(bad, schema))
+        # vLLM does not implement JSON Schema propertyNames. The deterministic
+        # compiler still rejects invalid identifiers after constrained decoding.
+        self.assertEqual(validate_schema(bad, schema), [])
+        with self.assertRaisesRegex(ValueError, 'invalid value name'):
+            compile_contracts(bad)
 
     def test_node_globals_respect_nested_scopes(self):
         from graphdsl_nodes import check_node_source

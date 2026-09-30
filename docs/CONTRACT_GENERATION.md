@@ -19,13 +19,17 @@ jobs/results live in `evaluation-v11/humaneval/`. An existing destination is ref
 interruption use the individual `export`, `evaluate`, `summarize` stages with the same subdir,
 as appropriate. Reevaluation does not reclassify old generation gates using new validators.
 
-For **new generation**, use `experiments/parsel_graphdsl_smoke_v11.json`,
-`parsel_graphdsl_humaneval_v11.json`, or `parsel_graphdsl_full_v11.json`. These use fresh output
+For **new generation**, use `experiments/parsel_graphdsl_smoke_v12.json`,
+`parsel_graphdsl_humaneval_v12.json`, or `parsel_graphdsl_full_v12.json`. These use fresh output
 directories and build the updated functional image. HumanEval-only still excludes direct Python.
+The superseded v11 generation configs are retained only for provenance: their constrained schema
+used unsupported `propertyNames`, so vLLM rejected requests before inference (`llm_calls=0`).
 
 The constrained schema now distinguishes Compute and Branch (Branch cannot emit needs and
 must declare exactly one result). Names, scope and type compatibility remain deterministic
 semantic checks: unknown references and overwritten values are rejected, never guessed.
+Value-key identifier rules are intentionally enforced after decoding because vLLM's response
+format grammar does not implement JSON Schema `propertyNames`.
 Prompts retain input formats, exact output strings and boundary semantics in local descriptions,
 and explain tuple-valued returns. Synthesis receives a return-key template and explicit input
 access expressions. Static symbol-table checks reject missing globals, including inside nested

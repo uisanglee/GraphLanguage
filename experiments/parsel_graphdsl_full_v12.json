@@ -1,0 +1,56 @@
+{
+  "name": "qwen7b-contracts-full-v12",
+  "input_dir": "data/normalized",
+  "output_dir": "outputs/qwen7b-contracts-full-v12",
+  "benchmarks": [
+    "humaneval",
+    "mbpp"
+  ],
+  "official_eval_only": true,
+  "generation": {
+    "base_url": "http://localhost:8000/v1",
+    "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+    "temperature": 0
+  },
+  "conditions": [
+    {
+      "name": "direct-python-1x1",
+      "kind": "direct"
+    },
+    {
+      "name": "graphir-contracts-direct-1x1",
+      "kind": "graphdsl",
+      "planner_demonstrations": 2,
+      "code_demonstrations": 1,
+      "synthesis_mode": "nodes",
+      "planner_format": "contracts"
+    },
+    {
+      "name": "graphir-contracts-plan-1x1",
+      "kind": "graphdsl",
+      "planner_demonstrations": 2,
+      "code_demonstrations": 1,
+      "synthesis_mode": "nodes",
+      "high_level_plan": true,
+      "planner_format": "contracts"
+    },
+    {
+      "name": "parsel-direct-1x1",
+      "kind": "parsel",
+      "parsel_demonstrations": 1
+    },
+    {
+      "name": "parsel-plan-1x1",
+      "kind": "parsel",
+      "parsel_demonstrations": 1,
+      "high_level_plan": true
+    }
+  ],
+  "evaluation": {
+    "workers": 2,
+    "functional_timeout": 5,
+    "functional_memory_mb": 512,
+    "build_functional_image": true,
+    "run_official": false
+  }
+}
