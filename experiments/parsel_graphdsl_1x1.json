@@ -1,7 +1,7 @@
 {
   "name": "qwen7b-parsel-graphir-core-1x1",
   "input_dir": "data/normalized",
-  "output_dir": "outputs/qwen7b-parsel-graphir-core-v5",
+  "output_dir": "outputs/qwen7b-parsel-graphir-core-v6",
   "benchmarks": ["humaneval", "mbpp", "bigcodebench", "livecodebench"],
   "official_eval_only": true,
   "generation": {

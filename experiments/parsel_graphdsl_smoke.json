@@ -1,7 +1,7 @@
 {
   "name": "qwen7b-graphir-core-smoke",
   "input_dir": "data/normalized",
-  "output_dir": "outputs/qwen7b-node-smoke-v5",
+  "output_dir": "outputs/qwen7b-node-smoke-v6",
   "benchmarks": ["humaneval", "mbpp"],
   "official_eval_only": true,
   "generation": {"base_url":"http://localhost:8000/v1", "model":"Qwen/Qwen2.5-Coder-7B-Instruct", "temperature":0.0, "limit":3},

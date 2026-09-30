@@ -170,12 +170,18 @@ def validate_structure(graph: dict) -> list[str]:
 def node_request(graph: dict, node: dict) -> dict:
     """No task text, other implementations, or whole-graph description is exposed."""
     by_id = {n["id"]: n for n in graph["nodes"]}
-    adjacent = set()
+    incoming = []
     for edge in graph["edges"]:
         if edge["to"]["node"] == node["id"]:
-            adjacent.add(edge["from"]["node"])
-        if edge["from"]["node"] == node["id"]:
-            adjacent.add(edge["to"]["node"])
+            source = by_id[edge['from']['node']]
+            port = next(p for p in source['outputs'] if p['id'] == edge['from']['port'])
+            incoming.append({
+                'input_port': edge['to']['port'],
+                'access': f"inputs[{edge['to']['port']!r}]",
+                'source_node': source['id'], 'source_port': port['id'],
+                'value_type': port['type'], 'description': source['description'],
+                'constraints': source.get('constraints', []),
+            })
     owned = [r["id"] for r in graph["regions"] if r.get("owner") == node["id"]]
     region_contracts = {}
     for rid in owned:
@@ -189,12 +195,14 @@ def node_request(graph: dict, node: dict) -> dict:
         "dialect": "core-0.2" if graph.get("metadata", {}).get("graphir_core_version") else "legacy-0.1",
         "signature": f"def {symbol(node['id'])}(inputs, regions):",
         "node": node,
-        "connected_contracts": [by_id[key] for key in sorted(adjacent)],
+        "input_bindings": incoming,
+        "input_values": {p['id']: {'type': p['type'], 'access': f"inputs[{p['id']!r}]"}
+                         for p in node['inputs']},
         "region_callbacks": region_contracts,
     }
 
 
-def check_node_source(source: str, node: dict) -> list[str]:
+def check_node_source(source: str, node: dict, graph: dict | None = None) -> list[str]:
     try:
         compile(source, "<node>", "exec")
         tree = ast.parse(source)
@@ -209,6 +217,43 @@ def check_node_source(source: str, node: dict) -> list[str]:
         return ["node function must preserve the exact ABI signature"]
     if any(isinstance(n, (ast.Global, ast.Nonlocal)) for n in ast.walk(fn)):
         return ["node functions must not modify compiler/module globals"]
+    # Check only direct ABI expressions in the outer scope. Unknown types, aliases,
+    # dynamic keys and shadowed ABI names are deliberately left to sandbox execution.
+    def outer_nodes(item):
+        yield item
+        for child in ast.iter_child_nodes(item):
+            if not isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda,
+                                      ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
+                yield from outer_nodes(child)
+    body_nodes = [child for statement in fn.body
+                  if not isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+                  for child in outer_nodes(statement)]
+    rebound = {n.id for n in body_nodes if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)}
+    from graphir_core import normalize_type
+    types = {p['id']: normalize_type(p['type']) for p in node.get('inputs', [])}
+    owned = ({r['id'] for r in graph['regions'] if r.get('owner') == node['id']}
+             if graph is not None else None)
+    def abi_key(expr, name):
+        if (name not in rebound and isinstance(expr, ast.Subscript)
+                and isinstance(expr.value, ast.Name) and expr.value.id == name
+                and isinstance(expr.slice, ast.Constant) and isinstance(expr.slice.value, str)):
+            return expr.slice.value
+        return None
+    for expr in body_nodes:
+        key = abi_key(expr, 'inputs')
+        if key is not None and key not in types:
+            return [f'unknown input port: {key}']
+        key = abi_key(expr, 'regions')
+        if key is not None and owned is not None and key not in owned:
+            return [f'unknown owned region callback: {key}']
+        if isinstance(expr, ast.Subscript):
+            port = abi_key(expr.value, 'inputs')
+            typ = types.get(port, '')
+            if typ in {'int', 'float', 'bool', 'complex', 'None'}:
+                return [f"input port {port} has non-subscriptable type {typ}; use inputs[{port!r}] directly"]
+            if (typ.split('[', 1)[0] in {'str', 'bytes', 'list', 'tuple'}
+                    and isinstance(expr.slice, ast.Constant) and isinstance(expr.slice.value, str)):
+                return [f'input port {port} has type {typ}, which cannot be indexed by a string']
     expected = {port["id"] for port in node["outputs"]}
     def own_returns(statements):
         for item in statements:
@@ -289,7 +334,7 @@ def compile_graph(graph: dict, implementations: dict[str, str]) -> str:
         raise ValueError("node ABI produces Python; repository patches require the explicit legacy mode")
     for node in graph["nodes"]:
         if node["kind"] not in BOUNDARIES:
-            errors = check_node_source(implementations.get(node["id"], ""), node)
+            errors = check_node_source(implementations.get(node["id"], ""), node, graph)
             if errors:
                 raise ValueError(f"{node['id']}: {errors}")
     orders = {r["id"]: region_order(graph, r["id"]) for r in graph["regions"]}

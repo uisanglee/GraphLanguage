@@ -1,7 +1,7 @@
 # GraphIR Core node synthesis and original Parsel (1×1)
 
 The current matrix is experiments/parsel_graphdsl_1x1.json. Its output directory is
-outputs/qwen7b-parsel-graphir-core-v5; do not mix it with results from older language versions.
+outputs/qwen7b-parsel-graphir-core-v6; do not mix it with results from older language versions.
 
 ## What runs
 

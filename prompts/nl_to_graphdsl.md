@@ -7,6 +7,12 @@ Each non-boundary node is a named semantic responsibility that another model can
 implement using only its input/output ports, description, config, constraints, and adjacent node
 contracts. Descriptions must specify observable behavior, boundary cases, effects, errors, and
 required complexity precisely enough for reimplementation. Do not prescribe Python syntax.
+Preserve every task requirement in the responsible node's local contract: return count/limits,
+ordering and tie rules, missing/duplicate cases, and mutation behavior. Use supplied public examples
+to resolve ambiguity; never invent requirements beyond the task. Node synthesis cannot see the task.
+For derived indices, lengths or references, state which version of the source data they describe.
+If another node changes that data, explicitly recompute or adjust dependent values before use.
+Specify tuple field order and collection element meaning, not just their types.
 
 Use the smallest useful graph. For ordinary HumanEval/MBPP-style functions, prefer:
 
@@ -37,6 +43,8 @@ Edges are pure connections and contain exactly two endpoint strings:
 Every endpoint must exist. Every required input has exactly one incoming edge. Edge types must be
 identical except that Any accepts any type. Never put conditions, order, conversion, loop behavior,
 exceptions, or descriptions on an edge.
+Combining values requires an explicit Compute with separate inputs. Route its output to the
+consumer; do not wire multiple raw values into one port expecting an implicit zip or conversion.
 
 Defaults are inferred deterministically. Omit labels, root regions, empty config, and empty metadata.
 For a function, preserve the exact entrypoint and Python signature. Give every public parameter one

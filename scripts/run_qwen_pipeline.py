@@ -329,7 +329,7 @@ def main() -> None:
                             ], args.max_node_tokens, args.temperature)
                             record['llm_calls'] += 1
                             code = strip_fence(raw_code)
-                            errors = check_node_source(code, node)
+                            errors = check_node_source(code, node, executable_graph)
                             node_result = dict(
                                 code=code, errors=errors, inference=inference,
                                 demonstration_ids=demo_ids,

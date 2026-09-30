@@ -36,6 +36,17 @@ python3 scripts/run_experiments.py --config experiments/my-run.json --stage eval
 All stages support `--dry-run`. Generation is resumable by `custom_id`; functional evaluation is
 resumable by task ID.
 
+The current smoke output is `outputs/qwen7b-node-smoke-v6`. It isolates the revised input-only
+node prompts and ABI checks from previous cached results. Run `--stage all` for generation AND
+sandboxed execution; `artifact_valid` alone measures static acceptance, not correctness.
+ABI checks catch direct literal references to missing input ports/owned callbacks and clearly
+invalid indexing for known scalar/sequence types. They allow dictionary values and unknown types;
+aliases, dynamic keys and shadowed names are not a full type/dataflow analysis. Algorithms, index
+provenance, output limits and other semantic contracts still require benchmark execution. Failed
+attempts are recorded without repair/resampling or selecting candidates using evaluation tests.
+The nested planner example is available to lexical retrieval; a one-example budget does not
+guarantee it is selected. Inspect demonstration_ids when comparing the direct and plan conditions.
+
 ## HumanEval and MBPP
 
 The exporter joins generated artifacts with tests only after generation, so hidden/reference fields

@@ -18,6 +18,14 @@
     "artifact": "artifacts/function_loop.py"
   },
   {
+    "id": "function-nested-control",
+    "interface": "function",
+    "benchmarks": ["humaneval", "mbpp", "bigcodebench", "livecodebench"],
+    "task": "Implement sum_positive_squares(values) with an editable Loop body containing a Branch. Carry a total, add a positive item's square, and otherwise preserve total. Return zero for empty input.",
+    "keywords": ["loop", "branch", "nested", "condition", "state", "iteration", "body"],
+    "graph": "../examples/core_nested.graph.json"
+  },
+  {
     "id": "stdio-pipeline",
     "interface": "stdio",
     "benchmarks": ["livecodebench"],

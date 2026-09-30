@@ -5,7 +5,8 @@
     "request": {
       "signature": "def _gd_example_double(inputs, regions):",
       "node": {"id": "double", "kind": "Compute", "description": "Return twice the input integer without mutation.", "inputs": [{"id":"x","type":"int"}], "outputs": [{"id":"y","type":"int"}], "config": {}},
-      "connected_contracts": [],
+      "input_bindings": [],
+      "input_values": {"x": {"type": "int", "access": "inputs['x']"}},
       "region_callbacks": {}
     },
     "code": "def _gd_example_double(inputs, regions):\n    return {'y': inputs['x'] * 2}\n",
@@ -19,7 +20,8 @@
       "dialect": "core-0.2",
       "signature": "def _gd_example_core_loop(inputs, regions):",
       "node": {"id":"scan","kind":"Loop","description":"Accumulate through the body callback.","inputs":[{"id":"values","type":"list[int]"},{"id":"total","type":"int"}],"outputs":[{"id":"total","type":"int"}],"config":{"mode":"for_each","iterable_port":"values","body_region":"scan.body","iteration":{"item_boundary":"scan.body.__input.item"},"carried":[{"initial_port":"total","input_boundary":"scan.body.__input.total","output_boundary":"scan.body.__output.total","final_port":"total"}],"bindings":{}}},
-      "connected_contracts": [],
+      "input_bindings": [],
+      "input_values": {"values":{"type":"list[int]","access":"inputs['values']"},"total":{"type":"int","access":"inputs['total']"}},
       "region_callbacks": {"scan.body":{"inputs":["scan.body.__input.item","scan.body.__input.total"],"outputs":["scan.body.__output.total"],"description":"Add item to total."}}
     },
     "code": "def _gd_example_core_loop(inputs, regions):\n    total = inputs['total']\n    for item in inputs['values']:\n        total = regions['scan.body']({'scan.body.__input.item': item, 'scan.body.__input.total': total})['scan.body.__output.total']\n    return {'total': total}\n",
@@ -32,7 +34,8 @@
     "request": {
       "signature": "def _gd_example_loop(inputs, regions):",
       "node": {"id":"loop","kind":"Loop","description":"Accumulate integers through the already-implemented body.","inputs":[{"id":"iterable","type":"list[int]"},{"id":"initial","type":"int"}],"outputs":[{"id":"total","type":"int"}],"config":{"mode":"for_each","body_region":"body","iteration":{"item_boundary":"item.value"},"carried":[{"initial_port":"initial","input_boundary":"state.value","output_boundary":"next.value","final_port":"total"}]}},
-      "connected_contracts": [],
+      "input_bindings": [],
+      "input_values": {"iterable":{"type":"list[int]","access":"inputs['iterable']"},"initial":{"type":"int","access":"inputs['initial']"}},
       "region_callbacks": {"body":{"inputs":["item.value","state.value"],"outputs":["next.value"],"description":"Add item to state and return next.value."}}
     },
     "code": "def _gd_example_loop(inputs, regions):\n    total = inputs['initial']\n    for item in inputs['iterable']:\n        total = regions['body']({'item.value': item, 'state.value': total})['next.value']\n    return {'total': total}\n",

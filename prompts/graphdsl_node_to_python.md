@@ -8,6 +8,12 @@ future imports (the assembled module already enables postponed annotations).
 Connected node outputs have already been computed and routed to inputs by the compiler. Do not
 call upstream nodes again. Their contracts explain the incoming values; their implementations
 are intentionally hidden.
+input_values describes the actual values in inputs. input_bindings gives their source and contract;
+the source port name is NOT a wrapper in memory. A float arriving from source.value is accessed as
+inputs['number'], never inputs['number']['value']. A dictionary-valued port may legitimately be
+indexed again. Return only the target node's declared output keys.
+regions contains ONLY entries listed in region_callbacks. Ordinary connected nodes are not
+callbacks. A Compute with no owned body receives an empty regions dict; never call a neighbor.
 
 For Loop, Branch, and controllers with owned bodies, regions is a dictionary of already-implemented callbacks keyed
 by owned region ID. Call regions[region_id](bindings), where bindings maps every RegionInput
