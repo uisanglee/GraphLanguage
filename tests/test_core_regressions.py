@@ -85,7 +85,8 @@ class CoreRegressions(unittest.TestCase):
                 payload = json.loads(messages[-1]['content'])
                 return code[payload['node']['id']], {'usage': {'total_tokens': 1}}
             argv = ['pipeline', '--input', str(request), '--output', str(output), '--model', 'fixture',
-                    '--num-code-demonstrations', '0']
+                    '--num-code-demonstrations', '0', '--schema', str(CORE_SCHEMA),
+                    '--node-system-prompt', str(ROOT / 'prompts/extended_graphdsl_node_to_python.md')]
             with patch.object(sys, 'argv', argv), patch.object(run_qwen_pipeline.Client, 'complete', autospec=True, side_effect=complete):
                 run_qwen_pipeline.main()
             result = json.loads(output.read_text())

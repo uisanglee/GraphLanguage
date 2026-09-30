@@ -1,0 +1,133 @@
+{
+  "graphir_version": "0.2.0",
+  "interface": {
+    "mode": "function",
+    "entrypoint": "combine_values",
+    "signature": "(values: list[int], use_product: bool) -> int"
+  },
+  "nodes": [
+    {
+      "id": "values",
+      "kind": "Input",
+      "description": "Input integers.",
+      "inputs": {},
+      "outputs": {
+        "value": "list[int]"
+      }
+    },
+    {
+      "id": "use_product",
+      "kind": "Input",
+      "description": "Choose product when true, sum otherwise.",
+      "inputs": {},
+      "outputs": {
+        "value": "bool"
+      }
+    },
+    {
+      "id": "choose",
+      "kind": "Branch",
+      "description": "Execute only the selected reduction path.",
+      "inputs": {
+        "values": "list[int]",
+        "use_product": "bool"
+      },
+      "outputs": {
+        "value": "int"
+      },
+      "branches": [
+        {
+          "when": "use_product",
+          "body": {
+            "inputs": {
+              "values": "list[int]"
+            },
+            "outputs": {
+              "value": "int"
+            },
+            "nodes": [
+              {
+                "id": "reduce",
+                "kind": "Compute",
+                "description": "Return the product of all values, or 1 if empty; do not mutate values.",
+                "inputs": {
+                  "values": "list[int]"
+                },
+                "outputs": {
+                  "value": "int"
+                }
+              }
+            ],
+            "edges": [
+              {
+                "from": "$input.values",
+                "to": "reduce.values"
+              },
+              {
+                "from": "reduce.value",
+                "to": "$output.value"
+              }
+            ]
+          }
+        },
+        {
+          "when": null,
+          "body": {
+            "inputs": {
+              "values": "list[int]"
+            },
+            "outputs": {
+              "value": "int"
+            },
+            "nodes": [
+              {
+                "id": "reduce",
+                "kind": "Compute",
+                "description": "Return the sum of all values, or 0 if empty; do not mutate values.",
+                "inputs": {
+                  "values": "list[int]"
+                },
+                "outputs": {
+                  "value": "int"
+                }
+              }
+            ],
+            "edges": [
+              {
+                "from": "$input.values",
+                "to": "reduce.values"
+              },
+              {
+                "from": "reduce.value",
+                "to": "$output.value"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "result",
+      "kind": "Output",
+      "description": "Return the reduction result.",
+      "inputs": {
+        "value": "int"
+      },
+      "outputs": {}
+    }
+  ],
+  "edges": [
+    {
+      "from": "values.value",
+      "to": "choose.values"
+    },
+    {
+      "from": "use_product.value",
+      "to": "choose.use_product"
+    },
+    {
+      "from": "choose.value",
+      "to": "result.value"
+    }
+  ]
+}

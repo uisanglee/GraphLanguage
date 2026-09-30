@@ -186,7 +186,7 @@ def main() -> None:
     )
     parser.add_argument("--api-key", default=os.environ.get("OPENAI_API_KEY", ""))
     parser.add_argument("--code-system-prompt", type=Path, default=Path("prompts/graphdsl_to_python.md"))
-    parser.add_argument("--schema", type=Path, default=Path("schemas/graphir-core.schema.json"))
+    parser.add_argument("--schema", type=Path, default=Path("schemas/graphir-compact.schema.json"))
     parser.add_argument(
         "--constraint-mode",
         choices=["response_format", "structured_outputs", "none"],

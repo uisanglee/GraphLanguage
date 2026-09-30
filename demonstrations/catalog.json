@@ -2,53 +2,100 @@
   {
     "id": "function-basic",
     "interface": "function",
-    "benchmarks": ["humaneval", "mbpp", "bigcodebench", "livecodebench"],
+    "benchmarks": [
+      "humaneval",
+      "mbpp",
+      "bigcodebench",
+      "livecodebench"
+    ],
     "task": "Implement absolute_distance(a, b), returning the non-negative absolute difference between two numbers.",
-    "keywords": ["function", "basic", "contract", "number", "return"],
+    "keywords": [
+      "function",
+      "basic",
+      "contract",
+      "number",
+      "return"
+    ],
     "graph": "../examples/core_function_basic.graph.json",
     "artifact": "artifacts/function_basic.py"
   },
   {
     "id": "function-iteration-contract",
     "interface": "function",
-    "benchmarks": ["humaneval", "mbpp", "bigcodebench"],
+    "benchmarks": [
+      "humaneval",
+      "mbpp",
+      "bigcodebench"
+    ],
     "task": "Write sum_positive_squares(values: list[int]) -> int. Return the sum of the squares of positive integers. Visit each value once and do not mutate the input.",
-    "keywords": ["function", "iteration", "list", "sum", "semantic contract"],
+    "keywords": [
+      "function",
+      "iteration",
+      "list",
+      "sum",
+      "semantic contract"
+    ],
     "graph": "../examples/core_function_iteration.graph.json",
     "artifact": "artifacts/function_loop.py"
   },
   {
     "id": "function-collection-contract",
     "interface": "function",
-    "benchmarks": ["humaneval", "mbpp", "bigcodebench", "livecodebench"],
+    "benchmarks": [
+      "humaneval",
+      "mbpp",
+      "bigcodebench",
+      "livecodebench"
+    ],
     "structure": "collection_pipeline",
     "task": "Implement rank_packages(packages, limit). Each package is a (label, list of signed component costs) tuple. Rank by summed cost ascending, preserving original order for ties, and return at most max(0, limit) labels without mutating input.",
-    "keywords": ["collection", "list", "tuple", "sort", "rank", "limit", "stable", "contract"],
+    "keywords": [
+      "collection",
+      "list",
+      "tuple",
+      "sort",
+      "rank",
+      "limit",
+      "stable",
+      "contract"
+    ],
     "graph": "../examples/core_collection_contract.graph.json"
-  },
-  {
-    "id": "function-nested-control",
-    "interface": "function",
-    "benchmarks": ["humaneval", "mbpp", "bigcodebench", "livecodebench"],
-    "task": "Implement sum_positive_squares(values) with an editable Loop body containing a Branch. Carry a total, add a positive item's square, and otherwise preserve total. Return zero for empty input.",
-    "keywords": ["loop", "branch", "nested", "condition", "state", "iteration", "body"],
-    "graph": "../examples/core_nested.graph.json"
   },
   {
     "id": "stdio-pipeline",
     "interface": "stdio",
-    "benchmarks": ["livecodebench"],
+    "benchmarks": [
+      "livecodebench"
+    ],
     "task": "Read whitespace-separated integers from standard input and print their sum followed by a newline.",
-    "keywords": ["stdin", "stdout", "parse", "format", "competitive programming"],
+    "keywords": [
+      "stdin",
+      "stdout",
+      "parse",
+      "format",
+      "competitive programming"
+    ],
     "graph": "../examples/core_stdio.graph.json",
     "artifact": "artifacts/stdio_sum.py"
   },
   {
-    "id": "repository-patch",
-    "interface": "repository_patch",
-    "benchmarks": ["swebench"],
-    "task": "Fix a repository parser so empty input returns the existing empty-result representation instead of raising IndexError. Preserve behavior for non-empty input and add a regression test.",
-    "keywords": ["repository", "issue", "locate", "edit", "patch", "regression test"],
-    "graph": "../examples/core_repository_patch.graph.json"
+    "id": "function-branch",
+    "interface": "function",
+    "benchmarks": [
+      "humaneval",
+      "mbpp",
+      "bigcodebench",
+      "livecodebench"
+    ],
+    "task": "Implement combine_values(values, use_product). Expose independently editable product and sum paths selected by use_product. Each path iterates internally; empty input gives 1 for product, 0 for sum.",
+    "keywords": [
+      "branch",
+      "alternative",
+      "paths",
+      "bool",
+      "product",
+      "sum"
+    ],
+    "graph": "../examples/core_branch.graph.json"
   }
 ]

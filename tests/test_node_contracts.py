@@ -58,10 +58,10 @@ class NodeContracts(unittest.TestCase):
             self.assertIn(binding['input_port'], request['input_values'])
             self.assertEqual(binding['access'], f"inputs[{binding['input_port']!r}]")
 
-    def test_nested_demo_is_valid_and_retrievable(self):
+    def test_branch_demo_is_valid_and_retrievable(self):
         bank = load_catalog(ROOT / 'demonstrations/catalog.json')
-        selected = retrieve(bank, 'editable nested Loop Branch body condition state', 'function', 'humaneval', 1)
-        self.assertEqual(selected[0]['id'], 'function-nested-control')
+        selected = retrieve(bank, 'branch alternative paths bool product sum', 'function', 'humaneval', 1)
+        self.assertEqual(selected[0]['id'], 'function-branch')
         self.assertEqual(validate(selected[0]['graph']), [])
 
 

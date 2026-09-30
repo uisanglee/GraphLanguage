@@ -47,9 +47,31 @@
     "kind": "Compute",
     "request": {
       "signature": "def _gd_example_double(inputs, regions):",
-      "node": {"id": "double", "kind": "Compute", "description": "Return twice the input integer without mutation.", "inputs": [{"id":"x","type":"int"}], "outputs": [{"id":"y","type":"int"}], "config": {}},
+      "node": {
+        "id": "double",
+        "kind": "Compute",
+        "description": "Return twice the input integer without mutation.",
+        "inputs": [
+          {
+            "id": "x",
+            "type": "int"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "y",
+            "type": "int"
+          }
+        ],
+        "config": {}
+      },
       "input_bindings": [],
-      "input_values": {"x": {"type": "int", "access": "inputs['x']"}},
+      "input_values": {
+        "x": {
+          "type": "int",
+          "access": "inputs['x']"
+        }
+      },
       "region_callbacks": {}
     },
     "code": "def _gd_example_double(inputs, regions):\n    return {'y': inputs['x'] * 2}\n",
@@ -62,10 +84,67 @@
     "request": {
       "dialect": "core-0.2",
       "signature": "def _gd_example_core_loop(inputs, regions):",
-      "node": {"id":"scan","kind":"Loop","description":"Accumulate through the body callback.","inputs":[{"id":"values","type":"list[int]"},{"id":"total","type":"int"}],"outputs":[{"id":"total","type":"int"}],"config":{"mode":"for_each","iterable_port":"values","body_region":"scan.body","iteration":{"item_boundary":"scan.body.__input.item"},"carried":[{"initial_port":"total","input_boundary":"scan.body.__input.total","output_boundary":"scan.body.__output.total","final_port":"total"}],"bindings":{}}},
+      "node": {
+        "id": "scan",
+        "kind": "Loop",
+        "description": "Accumulate through the body callback.",
+        "inputs": [
+          {
+            "id": "values",
+            "type": "list[int]"
+          },
+          {
+            "id": "total",
+            "type": "int"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "total",
+            "type": "int"
+          }
+        ],
+        "config": {
+          "mode": "for_each",
+          "iterable_port": "values",
+          "body_region": "scan.body",
+          "iteration": {
+            "item_boundary": "scan.body.__input.item"
+          },
+          "carried": [
+            {
+              "initial_port": "total",
+              "input_boundary": "scan.body.__input.total",
+              "output_boundary": "scan.body.__output.total",
+              "final_port": "total"
+            }
+          ],
+          "bindings": {}
+        }
+      },
       "input_bindings": [],
-      "input_values": {"values":{"type":"list[int]","access":"inputs['values']"},"total":{"type":"int","access":"inputs['total']"}},
-      "region_callbacks": {"scan.body":{"inputs":["scan.body.__input.item","scan.body.__input.total"],"outputs":["scan.body.__output.total"],"description":"Add item to total."}}
+      "input_values": {
+        "values": {
+          "type": "list[int]",
+          "access": "inputs['values']"
+        },
+        "total": {
+          "type": "int",
+          "access": "inputs['total']"
+        }
+      },
+      "region_callbacks": {
+        "scan.body": {
+          "inputs": [
+            "scan.body.__input.item",
+            "scan.body.__input.total"
+          ],
+          "outputs": [
+            "scan.body.__output.total"
+          ],
+          "description": "Add item to total."
+        }
+      }
     },
     "code": "def _gd_example_core_loop(inputs, regions):\n    total = inputs['total']\n    for item in inputs['values']:\n        total = regions['scan.body']({'scan.body.__input.item': item, 'scan.body.__input.total': total})['scan.body.__output.total']\n    return {'total': total}\n",
     "provenance": "hand-authored Core 0.2 nested-control ABI example"
@@ -76,12 +155,262 @@
     "dialect": "legacy-0.1",
     "request": {
       "signature": "def _gd_example_loop(inputs, regions):",
-      "node": {"id":"loop","kind":"Loop","description":"Accumulate integers through the already-implemented body.","inputs":[{"id":"iterable","type":"list[int]"},{"id":"initial","type":"int"}],"outputs":[{"id":"total","type":"int"}],"config":{"mode":"for_each","body_region":"body","iteration":{"item_boundary":"item.value"},"carried":[{"initial_port":"initial","input_boundary":"state.value","output_boundary":"next.value","final_port":"total"}]}},
+      "node": {
+        "id": "loop",
+        "kind": "Loop",
+        "description": "Accumulate integers through the already-implemented body.",
+        "inputs": [
+          {
+            "id": "iterable",
+            "type": "list[int]"
+          },
+          {
+            "id": "initial",
+            "type": "int"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "total",
+            "type": "int"
+          }
+        ],
+        "config": {
+          "mode": "for_each",
+          "body_region": "body",
+          "iteration": {
+            "item_boundary": "item.value"
+          },
+          "carried": [
+            {
+              "initial_port": "initial",
+              "input_boundary": "state.value",
+              "output_boundary": "next.value",
+              "final_port": "total"
+            }
+          ]
+        }
+      },
       "input_bindings": [],
-      "input_values": {"iterable":{"type":"list[int]","access":"inputs['iterable']"},"initial":{"type":"int","access":"inputs['initial']"}},
-      "region_callbacks": {"body":{"inputs":["item.value","state.value"],"outputs":["next.value"],"description":"Add item to state and return next.value."}}
+      "input_values": {
+        "iterable": {
+          "type": "list[int]",
+          "access": "inputs['iterable']"
+        },
+        "initial": {
+          "type": "int",
+          "access": "inputs['initial']"
+        }
+      },
+      "region_callbacks": {
+        "body": {
+          "inputs": [
+            "item.value",
+            "state.value"
+          ],
+          "outputs": [
+            "next.value"
+          ],
+          "description": "Add item to state and return next.value."
+        }
+      }
     },
     "code": "def _gd_example_loop(inputs, regions):\n    total = inputs['initial']\n    for item in inputs['iterable']:\n        total = regions['body']({'item.value': item, 'state.value': total})['next.value']\n    return {'total': total}\n",
     "provenance": "hand-authored ABI example; no benchmark solution"
+  },
+  {
+    "id": "node-core-branch",
+    "kind": "Branch",
+    "dialect": "core-0.2",
+    "request": {
+      "dialect": "core-0.2",
+      "signature": "def _gd_n_725fed9d1ae90998(inputs, regions):",
+      "node": {
+        "id": "choose",
+        "kind": "Branch",
+        "label": "choose",
+        "description": "Execute only the selected reduction path.",
+        "region": "root",
+        "inputs": [
+          {
+            "id": "values",
+            "type": "list[int]"
+          },
+          {
+            "id": "use_product",
+            "type": "bool"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "value",
+            "type": "int"
+          }
+        ],
+        "config": {
+          "branches": [
+            {
+              "region": "choose.branch_0",
+              "condition_port": "use_product"
+            },
+            {
+              "region": "choose.branch_1",
+              "condition_port": null
+            }
+          ],
+          "region_bindings": {
+            "choose.branch_0": {
+              "inputs": {
+                "choose.branch_0.__input.values": "values"
+              },
+              "outputs": {
+                "value": "choose.branch_0.__output.value"
+              }
+            },
+            "choose.branch_1": {
+              "inputs": {
+                "choose.branch_1.__input.values": "values"
+              },
+              "outputs": {
+                "value": "choose.branch_1.__output.value"
+              }
+            }
+          }
+        }
+      },
+      "input_bindings": [
+        {
+          "input_port": "values",
+          "access": "inputs['values']",
+          "source_node": "values",
+          "source_port": "value",
+          "value_type": "list[int]",
+          "description": "Input integers.",
+          "constraints": []
+        },
+        {
+          "input_port": "use_product",
+          "access": "inputs['use_product']",
+          "source_node": "use_product",
+          "source_port": "value",
+          "value_type": "bool",
+          "description": "Choose product when true, sum otherwise.",
+          "constraints": []
+        }
+      ],
+      "input_values": {
+        "values": {
+          "type": "list[int]",
+          "access": "inputs['values']"
+        },
+        "use_product": {
+          "type": "bool",
+          "access": "inputs['use_product']"
+        }
+      },
+      "region_callbacks": {
+        "choose.branch_0": {
+          "inputs": [
+            {
+              "id": "choose.branch_0.__input",
+              "kind": "RegionInput",
+              "label": "choose.branch 0.  input",
+              "description": "Generated body boundary",
+              "region": "choose.branch_0",
+              "inputs": [],
+              "outputs": [
+                {
+                  "id": "values",
+                  "type": "list[int]"
+                }
+              ],
+              "config": {}
+            }
+          ],
+          "outputs": [
+            {
+              "id": "choose.branch_0.__output",
+              "kind": "RegionOutput",
+              "label": "choose.branch 0.  output",
+              "description": "Generated body boundary",
+              "region": "choose.branch_0",
+              "inputs": [
+                {
+                  "id": "value",
+                  "type": "int"
+                }
+              ],
+              "outputs": [],
+              "config": {}
+            }
+          ],
+          "contracts": [
+            {
+              "id": "choose.branch_0.__input",
+              "description": "Generated body boundary"
+            },
+            {
+              "id": "choose.branch_0.__output",
+              "description": "Generated body boundary"
+            },
+            {
+              "id": "choose.branch_0.reduce",
+              "description": "Return the product of all values, or 1 if empty; do not mutate values."
+            }
+          ]
+        },
+        "choose.branch_1": {
+          "inputs": [
+            {
+              "id": "choose.branch_1.__input",
+              "kind": "RegionInput",
+              "label": "choose.branch 1.  input",
+              "description": "Generated body boundary",
+              "region": "choose.branch_1",
+              "inputs": [],
+              "outputs": [
+                {
+                  "id": "values",
+                  "type": "list[int]"
+                }
+              ],
+              "config": {}
+            }
+          ],
+          "outputs": [
+            {
+              "id": "choose.branch_1.__output",
+              "kind": "RegionOutput",
+              "label": "choose.branch 1.  output",
+              "description": "Generated body boundary",
+              "region": "choose.branch_1",
+              "inputs": [
+                {
+                  "id": "value",
+                  "type": "int"
+                }
+              ],
+              "outputs": [],
+              "config": {}
+            }
+          ],
+          "contracts": [
+            {
+              "id": "choose.branch_1.__input",
+              "description": "Generated body boundary"
+            },
+            {
+              "id": "choose.branch_1.__output",
+              "description": "Generated body boundary"
+            },
+            {
+              "id": "choose.branch_1.reduce",
+              "description": "Return the sum of all values, or 0 if empty; do not mutate values."
+            }
+          ]
+        }
+      }
+    },
+    "code": "def _gd_n_725fed9d1ae90998(inputs, regions):\n    rid = 'choose.branch_0' if inputs['use_product'] else 'choose.branch_1'\n    result = regions[rid]({rid + '.__input.values': inputs['values']})\n    return {'value': result[rid + '.__output.value']}"
   }
 ]

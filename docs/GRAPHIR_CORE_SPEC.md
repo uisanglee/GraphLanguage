@@ -99,6 +99,10 @@ a node. Equivalent `typing` spellings are normalized to built-in generics before
 
 ## Profiles
 
+Default generation now uses `schemas/graphir-compact.schema.json`: only Input, Output, Compute,
+Branch for function/stdio tasks. See COMPACT_GENERATION.md. The following extended kinds remain
+supported for historical graphs but are not offered to the default planner.
+
 Function and stdio tasks use `Input`, `Output`, `Literal`, `Compute`, `Call`, and only when useful
 `Loop`, `Branch`, `Resource`, `Context`, `Effect`, `Assert`, or `Test`. Repository tasks additionally
 use `SourceArtifact`, `Locate`, `Edit`, `AddArtifact`, `DeleteArtifact`, and `Patch`.

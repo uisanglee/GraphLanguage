@@ -128,6 +128,8 @@ def main() -> None:
         for record in iter_records(args.input_dir, selected):
             if args.official_eval_only and not is_official_evaluation_task(record):
                 continue
+            if record['interface'] == 'repository_patch':
+                raise ValueError('Repository editing is outside the compact GraphIR generation profile')
             for variant, prompt_text in variants(record, args.expand_variants):
                 task = safe_task(record, prompt_text, variant)
                 demonstrations = retrieve(

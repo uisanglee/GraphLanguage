@@ -89,12 +89,6 @@ def retrieve(
         ranked.append((profile_bonus + benchmark_bonus + lexical + structure_bonus, item["id"], item))
     ranked.sort(key=lambda value: (-value[0], value[1]))
     selected = [item for _, _, item in ranked[:limit]]
-    # Reserve one syntax reference within the existing budget. This guarantees
-    # nested syntax exposure even when lexical top-1 is a simple Compute example.
-    if interface == 'function' and limit >= 2 and not require_artifact:
-        nested = next((item for _, _, item in ranked if item['id'] == 'function-nested-control'), None)
-        if nested and not any(item['id'] == nested['id'] for item in selected):
-            selected[-1] = nested
     return selected
 
 

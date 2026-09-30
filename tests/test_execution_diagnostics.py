@@ -97,7 +97,8 @@ class ExecutionDiagnostics(unittest.TestCase):
     def test_structural_retrieval_respects_budget_and_ablation(self):
         bank = load_catalog(ROOT / 'demonstrations/catalog.json')
         selected = retrieve(bank, 'sort rows by total', 'function', 'mbpp', 2)
-        self.assertEqual([d['id'] for d in selected], ['function-collection-contract', 'function-nested-control'])
+        self.assertEqual(selected[0]['id'], 'function-collection-contract')
+        self.assertNotIn('function-nested-control', [d['id'] for d in selected])
         self.assertEqual(retrieve(bank, 'sort', 'function', 'mbpp', 0), [])
         for demo in bank:
             self.assertEqual(validate(demo['graph']), [], demo['id'])

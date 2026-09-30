@@ -1,5 +1,9 @@
 # GraphIR Core node generation pipeline
 
+The v8 default uses the compact generation profile described in COMPACT_GENERATION.md:
+Input, Output, Compute, Branch. Loops stay inside Compute. Extended Core support below is
+retained for existing graphs, not exposed by the default generation schema.
+
 The default synthesis mode is now nodes. See PARSEL_GRAPHDSL_1X1.md for the comparison protocol.
 
 1. A compact planner prompt plus an optional retrieved task/graph example produces one Core graph.
@@ -26,7 +30,8 @@ proven by schema validation.
 Retrieval: planner demonstrations use the existing catalog. Node synthesis uses the hand-authored
 demonstrations/node_catalog.json, filtered by kind and ranked lexically. A missing matching example
 means zero examples. IDs are logged. The v7 matrix uses two examples for GraphIR planning,
-including one reserved nested syntax reference, and one each for node synthesis and NL-to-Parsel.
+and one each for node synthesis and NL-to-Parsel. The v8 matrix retains these counts but removes
+the reserved nested syntax reference and uses a compact-compatible catalog.
 Collection pipelines receive structural ranking priority; zero demonstrations is an explicitly
 labeled ablation. The old --synthesis-mode whole is available only as an explicitly labeled
 ablation or for repository patch experiments.
