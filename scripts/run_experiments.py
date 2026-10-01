@@ -98,6 +98,9 @@ def generate(config: dict[str, Any], dry_run: bool) -> None:
             command = [sys.executable, str(ROOT / "scripts" / "run_pseudocode_pipeline.py"), *base,
                 '--representation', condition.get('representation', 'graphir'),
                 '--source-context', condition.get('source_context', 'original'),
+                '--example-context', condition.get(
+                    'example_context',
+                    'public' if condition.get('source_context', 'original') == 'original' else 'none'),
                 '--plans-dir', str(output_dir / 'shared-pseudocode'),
                 '--max-plan-tokens', str(config['generation'].get('max_plan_tokens', 4096)),
                 '--max-code-tokens', str(config['generation'].get('max_code_tokens', 8192))]

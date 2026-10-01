@@ -26,7 +26,7 @@ GPU 서버에서 Qwen을 켜 둔 상태로 smoke 실험:
 
 ```bash
 python scripts/run_experiments.py \
-  --config experiments/pseudocode_smoke_v22.json \
+  --config experiments/pseudocode_smoke_v23.json \
   --stage all
 ```
 
@@ -34,7 +34,7 @@ HumanEval 164개만 전체 평가:
 
 ```bash
 python scripts/run_experiments.py \
-  --config experiments/pseudocode_humaneval_v22.json \
+  --config experiments/pseudocode_humaneval_v23.json \
   --stage all
 ```
 
@@ -42,29 +42,36 @@ HumanEval 164개 + MBPP 공식 test 500개:
 
 ```bash
 python scripts/run_experiments.py \
-  --config experiments/pseudocode_full_v22.json \
+  --config experiments/pseudocode_full_v23.json \
   --stage all
 ```
 
-기본 실험은 다음 세 조건을 순서대로 수행한다. 같은 문제의 pseudocode 생성은 캐시로
+기본 실험은 다음 네 조건을 순서대로 수행한다. 같은 문제의 pseudocode 생성은 캐시로
 공유하므로 조건별로 다른 계획을 생성하지 않는다.
 
 | 조건 | Python 생성기 입력 |
 | --- | --- |
-| source-pseudocode-1x1 | 원본 명세·공개 예제 + pseudocode |
+| source-pseudocode-examples-1x1 | 원본 명세 + pseudocode + 별도 공개 예제 sidecar |
 | graphir-only-1x1 | GraphIR + 공개 함수 인터페이스 |
-| source-graphir-1x1 | 원본 명세·공개 예제 + GraphIR |
+| graphir-examples-1x1 | GraphIR + 공개 함수 인터페이스 + 별도 공개 예제 sidecar |
+| source-graphir-examples-1x1 | 원본 명세 + GraphIR + 별도 공개 예제 sidecar |
 
 기본 Qwen→Python 조건은 기본 설정에 없다.
-함께 비교하려면 `experiments/pseudocode_ablation_full_v22.json`을 사용한다.
+함께 비교하려면 `experiments/pseudocode_ablation_full_v23.json`을 사용한다.
 이 baseline도 같은 공개 예제와 일반 Python ABI를 받는다.
+
+구조화된 공개 예제는 GraphIR 객체나 `source_specification.public_examples`에 저장하지
+않는다. 최종 Python 생성 요청의 최상위 `public_examples` sidecar로만 전달되며, 없는
+경우 필드 자체를 생략한다. 원본 명세 조건에서는 원문 안의 doctest를 그대로 보존한다.
+따라서 `graphir-only-1x1`과 `graphir-examples-1x1`의 GraphIR은 완전히 동일하고, 두
+조건의 차이는 두 번째 단계에 구조화된 공개 예제를 제공했는지뿐이다.
 
 각 조건은 계획 후보 1개, 전체 Python 후보 1개를 사용한다. 계획을 함수별로 나눠
 여러 Python 후보를 탐색하지 않는다. 구문 실패는 실패로 기록하고 재생성하지 않는다.
 `prepare → generate → export → evaluate → summarize` 순서로 실행된다.
 생성 코드는 호스트에서 실행하지 않고 기존 Docker 평가기에서 테스트한다.
 
-출력은 `outputs/qwen7b-pseudocode-<설정명>-v22/` 아래에 저장된다.
+출력은 `outputs/qwen7b-pseudocode-<설정명>-v23/` 아래에 저장된다.
 
 - `<조건>/results.jsonl`: pseudocode, 컴파일된 GraphIR, Python, 오류와 토큰·시간
 - `<조건>/evaluation/<benchmark>/results.jsonl`: 개별 정답 판정
@@ -90,7 +97,7 @@ python scripts/run_experiments.py \
 
 ```bash
 python -m unittest discover -s tests -v
-python scripts/run_experiments.py --config experiments/pseudocode_smoke_v22.json --stage all --dry-run
+python scripts/run_experiments.py --config experiments/pseudocode_smoke_v23.json --stage all --dry-run
 ```
 
 ## 이전 실험

@@ -17,13 +17,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def generate_one(request, planner, synthesizer, *, representation, source_context,
-                 system, max_plan_tokens=4096, max_code_tokens=8192, temperature=0):
+                 example_context, system, max_plan_tokens=4096, max_code_tokens=8192,
+                 temperature=0):
     task = json.loads(request['messages'][-1]['content'])
+    public_examples = task.get('public_examples', [])
+    source_specification = dict(task)
+    source_specification.pop('public_examples', None)
     record = {'custom_id': request['custom_id'], 'metadata': request['metadata'],
               'representation': representation, 'source_context': source_context,
+              'example_context': example_context,
               'compiler_version': VERSION, 'artifact_valid': False,
               'pseudocode_valid': False, 'graph_valid': False,
-              'preserved_public_example_count': len(task.get('public_examples', [])),
+              'preserved_public_example_count': len(public_examples),
+              'provided_public_example_count': len(public_examples) if example_context == 'public' else 0,
               'llm_calls': 0}
     try:
         if representation == 'direct':
@@ -32,7 +38,11 @@ def generate_one(request, planner, synthesizer, *, representation, source_contex
             record['llm_calls'] = 1
             code, inference = synthesizer.complete(
                 [{'role': 'system', 'content': system},
-                 {'role': 'user', 'content': json.dumps({'source_specification': task}, ensure_ascii=False)}],
+                 {'role': 'user', 'content': json.dumps({
+                     'source_specification': source_specification,
+                     **({'public_examples': public_examples}
+                        if example_context == 'public' and public_examples else {})
+                 }, ensure_ascii=False)}],
                 max_code_tokens, temperature)
             errors = artifact_errors(code, task)
             if inference.get('finish_reason') == 'length':
@@ -57,7 +67,9 @@ def generate_one(request, planner, synthesizer, *, representation, source_contex
         payload['graphir' if representation == 'graphir' else 'pseudocode'] = (
             graph if representation == 'graphir' else raw)
         if source_context == 'original':
-            payload['source_specification'] = task
+            payload['source_specification'] = source_specification
+        if example_context == 'public' and public_examples:
+            payload['public_examples'] = public_examples
         record['llm_calls'] += 1
         code, inference = synthesizer.complete(
             [{'role': 'system', 'content': system},
@@ -83,9 +95,10 @@ def main():
     parser.add_argument('--temperature', type=float, default=0)
     parser.add_argument('--timeout', type=int, default=600)
     parser.add_argument('--limit', type=int)
-    parser.add_argument('--condition-name', default='source-graphir-1x1')
+    parser.add_argument('--condition-name', default='source-graphir-examples-1x1')
     parser.add_argument('--representation', choices=['direct', 'pseudocode', 'graphir'], default='graphir')
     parser.add_argument('--source-context', choices=['original', 'none'], default='original')
+    parser.add_argument('--example-context', choices=['public', 'none'], default='public')
     parser.add_argument('--plans-dir', type=Path, required=True)
     parser.add_argument('--max-plan-tokens', type=int, default=4096)
     parser.add_argument('--max-code-tokens', type=int, default=8192)
@@ -111,7 +124,7 @@ def main():
             synthesizer = JournalClient(client, args.output.parent / 'inference' / key)
             record = generate_one(request, planner, synthesizer,
                 representation=args.representation, source_context=args.source_context,
-                system=system, max_plan_tokens=args.max_plan_tokens,
+                example_context=args.example_context, system=system, max_plan_tokens=args.max_plan_tokens,
                 max_code_tokens=args.max_code_tokens, temperature=args.temperature)
             record.update(condition=args.condition_name, model=args.model)
             record.update(actual_api_calls=planner.requests_sent + synthesizer.requests_sent,

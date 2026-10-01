@@ -13,8 +13,11 @@ signatures and returns.
 The compiled public interface is authoritative over annotations in plan source.
 
 If source_specification is present, preserve its complete requirements, signature,
-starter helpers and public examples. Resolve a conflicting generated plan using
-the original specification. Examples constrain behavior but are not exhaustive.
+and starter helpers. Resolve a conflicting generated plan using the original
+specification. If public_examples is present, treat it as a separate set of
+non-exhaustive behavioral constraints: satisfy every example, do not hard-code its
+particular inputs or outputs, and generalize consistently with the available plan
+and source specification. The examples are evidence, not executable GraphIR nodes.
 If source_specification is absent, implement the plan and public interface as
 provided. For stdio output a complete program reading stdin and writing stdout.
 For function tasks expose the required callable/class method. Do not output tests.

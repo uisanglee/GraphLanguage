@@ -314,11 +314,15 @@ def total(values: list[int]) -> int:
 
 
 class PipelineTests(unittest.TestCase):
-    def run_arm(self, representation='graphir', source_context='original', planner=None):
+    def run_arm(self, representation='graphir', source_context='original', planner=None,
+                example_context=None, req=None):
         planner = planner or FakeClient()
         coder = FakeClient()
-        row = generate_one(request(), planner, coder, representation=representation,
-                           source_context=source_context, system=SYSTEM)
+        if example_context is None:
+            example_context = 'public' if source_context == 'original' else 'none'
+        row = generate_one(req or request(), planner, coder, representation=representation,
+                           source_context=source_context, example_context=example_context,
+                           system=SYSTEM)
         return row, planner, coder
 
     def test_public_source_is_preserved_and_hidden_fields_excluded(self):
@@ -327,6 +331,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(row['llm_calls'], 2)
         payload = json.loads(coder.calls[0][-1]['content'])
         self.assertEqual(payload['source_specification']['task'], TASK['task'])
+        self.assertNotIn('public_examples', payload['source_specification'])
         all_prompts = json.dumps(planner.calls + coder.calls)
         for secret in ('HIDDEN_SECRET', 'GOLD_SECRET', 'METADATA_SECRET'):
             self.assertNotIn(secret, all_prompts)
@@ -336,10 +341,13 @@ class PipelineTests(unittest.TestCase):
 
     def test_all_arms_share_same_plan_and_equal_source_for_representation_comparison(self):
         rows = []
-        for rep, context in [('pseudocode', 'original'), ('graphir', 'none'), ('graphir', 'original')]:
-            row, _, coder = self.run_arm(rep, context)
+        for rep, context, examples in [('pseudocode', 'original', 'public'),
+                                       ('graphir', 'none', 'none'),
+                                       ('graphir', 'original', 'public')]:
+            row, _, coder = self.run_arm(rep, context, example_context=examples)
             payload = json.loads(coder.calls[0][-1]['content'])
             self.assertEqual('source_specification' in payload, context == 'original')
+            self.assertNotIn('public_examples', payload)  # this synthetic task has none
             self.assertIn(rep, payload)
             rows.append(row)
         self.assertEqual(len({r['pseudocode_raw'] for r in rows}), 1)
@@ -384,6 +392,25 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(len(task['public_examples']), 1)
             self.assertNotIn('SECRET', json.dumps(req))
 
+    def test_public_examples_are_prompt_sidecar_not_graphir_state(self):
+        rec = {'id': 'mbpp:synthetic', 'benchmark': 'mbpp', 'interface': 'function',
+               'entrypoint': 'total', 'starter_code': TASK['starter_code'],
+               'public_tests': ['assert total([2, -1]) == 2'],
+               'reference': {'test': 'SECRET'}}
+        req = request_for(rec, 'primary', TASK['task'], 'Generate pseudocode.')
+        without, _, coder_without = self.run_arm('graphir', 'none',
+                                                  example_context='none', req=req)
+        with_examples, _, coder_with = self.run_arm('graphir', 'none',
+                                                     example_context='public', req=req)
+        payload_without = json.loads(coder_without.calls[0][-1]['content'])
+        payload_with = json.loads(coder_with.calls[0][-1]['content'])
+        self.assertNotIn('public_examples', payload_without)
+        self.assertEqual(len(payload_with['public_examples']), 1)
+        self.assertEqual(payload_without['graphir'], payload_with['graphir'])
+        self.assertNotIn('public_examples', json.dumps(payload_with['graphir']))
+        self.assertEqual(without['provided_public_example_count'], 0)
+        self.assertEqual(with_examples['provided_public_example_count'], 1)
+
     def test_mbpp_entrypoint_is_inferred_from_consistent_public_asserts(self):
         rec = {'id': 'mbpp:synthetic', 'benchmark': 'mbpp', 'interface': 'function',
                'entrypoint': None, 'starter_code': '',
@@ -416,12 +443,12 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(failed['candidate'], '')
 
     def test_experiment_dispatch_has_no_legacy_generation_options(self):
-        config = json.loads((ROOT / 'experiments/pseudocode_smoke_v22.json').read_text())
+        config = json.loads((ROOT / 'experiments/pseudocode_smoke_v23.json').read_text())
         with patch.object(run_experiments, 'run') as run:
             run_experiments.prepare(config, True)
             run_experiments.generate(config, True)
         commands = [call.args[0] for call in run.call_args_list]
-        self.assertEqual(len(commands), 6)
+        self.assertEqual(len(commands), 8)
         self.assertTrue(all('pseudocode' in command[1] for command in commands))
         for command in commands:
             self.assertNotIn('--constraint-mode', command)
@@ -440,11 +467,14 @@ class PipelineTests(unittest.TestCase):
                 build_pseudocode_eval.main()
             client = FakeClient()
             paths = []
-            for rep, context in [('pseudocode', 'original'), ('graphir', 'original'), ('graphir', 'none')]:
+            for rep, context, examples in [('pseudocode', 'original', 'public'),
+                                           ('graphir', 'original', 'public'),
+                                           ('graphir', 'none', 'none')]:
                 output = base / (rep + '-' + context) / 'results.jsonl'
                 paths.append(output)
                 argv = ['run', '--input', str(requests), '--output', str(output), '--model', client.model,
-                        '--plans-dir', str(base / 'shared'), '--representation', rep, '--source-context', context]
+                        '--plans-dir', str(base / 'shared'), '--representation', rep,
+                        '--source-context', context, '--example-context', examples]
                 with patch.object(sys, 'argv', argv), patch.object(run_pseudocode_pipeline, 'Client', return_value=client):
                     run_pseudocode_pipeline.main()
                     run_pseudocode_pipeline.main()  # no duplicate rows or calls

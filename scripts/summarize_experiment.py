@@ -159,6 +159,10 @@ def main() -> None:
                     sum(int(row.get('preserved_public_example_count', 0)) for row in results) / total
                     if total else 0.0
                 ),
+                "mean_provided_public_examples": (
+                    sum(int(row.get('provided_public_example_count', 0)) for row in results) / total
+                    if total else 0.0
+                ),
                 "evaluated": len(evaluations),
                 "evaluation_complete": complete,
                 "infrastructure_errors": infra_errors,

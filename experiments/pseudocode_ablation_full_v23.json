@@ -1,0 +1,16 @@
+{
+  "name": "qwen7b-pseudocode-ablation-full-v23",
+  "output_dir": "outputs/qwen7b-pseudocode-ablation-full-v23",
+  "input_dir": "data/normalized",
+  "benchmarks": ["humaneval", "mbpp"],
+  "official_eval_only": true,
+  "generation": {"base_url": "http://localhost:8000/v1", "model": "Qwen/Qwen2.5-Coder-7B-Instruct", "temperature": 0, "max_plan_tokens": 4096, "max_code_tokens": 8192},
+  "conditions": [
+    {"name": "source-python-examples-1x1", "kind": "pseudocode", "representation": "direct", "source_context": "original", "example_context": "public"},
+    {"name": "source-pseudocode-examples-1x1", "kind": "pseudocode", "representation": "pseudocode", "source_context": "original", "example_context": "public"},
+    {"name": "graphir-only-1x1", "kind": "pseudocode", "representation": "graphir", "source_context": "none", "example_context": "none"},
+    {"name": "graphir-examples-1x1", "kind": "pseudocode", "representation": "graphir", "source_context": "none", "example_context": "public"},
+    {"name": "source-graphir-examples-1x1", "kind": "pseudocode", "representation": "graphir", "source_context": "original", "example_context": "public"}
+  ],
+  "evaluation": {"workers": 2, "functional_timeout": 5, "functional_memory_mb": 512, "build_functional_image": true, "run_official": false}
+}

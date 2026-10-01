@@ -1,4 +1,4 @@
-# Structured pseudocode → compact AST GraphIR experiment (v22)
+# Structured pseudocode → compact AST GraphIR experiment (v23)
 
 ## Literature and scope of the claim
 
@@ -136,40 +136,49 @@ program equivalence. Invalid plans stop before synthesis and count as failures.
 
 | Condition | Second-stage input | Logical generations |
 | --- | --- | --- |
-| source-pseudocode-1x1 | original public task + pseudocode | 1 plan + 1 program |
+| source-pseudocode-examples-1x1 | original public task + pseudocode + public-example sidecar | 1 plan + 1 program |
 | graphir-only-1x1 | GraphIR + public interface | 1 plan + 1 program |
-| source-graphir-1x1 | original public task + GraphIR | 1 plan + 1 program |
-| source-python-1x1 (optional) | original public task | 1 program |
+| graphir-examples-1x1 | GraphIR + public interface + public-example sidecar | 1 plan + 1 program |
+| source-graphir-examples-1x1 | original public task + GraphIR + public-example sidecar | 1 plan + 1 program |
+| source-python-examples-1x1 (optional) | original public task + public-example sidecar | 1 program |
 
 Every planned arm shares the same raw plan via a content-addressed inference
 journal. Even the pseudocode arm goes through the same parser gate to hold planner
-failures constant. Compare source-pseudocode vs source-graphir to isolate the
-representation effect; compare the two graph arms to isolate original-context
-availability. The optional baseline uses the same public task/examples and code
+failures constant. Compare graphir-only vs graphir-examples to isolate the
+second-stage example effect, and source-pseudocode-examples vs
+source-graphir-examples to isolate the representation effect. Compare the two
+example-bearing graph arms to isolate original-context availability. The optional baseline uses the same public task/examples and code
 prompt. It has a smaller inference budget, so report tokens and latency as well
 as Pass@1. Graph encoding is longer than pseudocode, not a token-matched treatment.
 
-The default matrix omits the direct Python baseline. `pseudocode_ablation_full_v22.json`
+The default matrix omits the direct Python baseline. `pseudocode_ablation_full_v23.json`
 adds it. All arms use ordinary Python interfaces and one whole-program synthesis;
 this does not measure per-node synthesis, local repair or combinatorial selection.
 No extra NL high-level-plan pass, retrieval, retries, self-repair or test selection
 is used. No JSON constrained decoding is needed because the model emits pseudocode;
 Python parsing is a post-generation gate, not grammar-constrained decoding.
 
-Source context contains the original task, starter code, entrypoint, fixed signature
-and available public examples. Reference solutions, hidden tests and opaque official
-metadata are excluded. In the graph-only arm these original fields and separately
-preserved public examples are absent from stage two (although a generated plan can
-itself mention examples). The public signature remains fixed in every arm.
+Source context contains the verbatim original task, starter code, entrypoint and
+fixed signature. Its structured `public_examples` field is removed; an original
+task string or starter docstring may naturally still contain doctests. Structured
+examples are an independent, top-level `public_examples` sidecar in the
+Python-generation payload. They are not stored as GraphIR nodes or GraphIR metadata,
+and the field is omitted when no public examples exist or the condition disables it.
+Reference solutions, hidden tests and opaque official metadata are excluded. In
+graphir-only, both original source context and the example sidecar are absent from
+stage two. The shared generated plan may
+itself mention information learned from examples because every planned arm shares the
+same first-stage request; the sidecar ablation therefore measures the incremental
+second-stage effect. The public signature remains fixed in every arm.
 
 ## Run and inspect
 
-Use `experiments/pseudocode_smoke_v22.json` first, then
-`experiments/pseudocode_humaneval_v22.json` for HumanEval only or
-`experiments/pseudocode_full_v22.json` for HumanEval + MBPP. Run from repository root:
+Use `experiments/pseudocode_smoke_v23.json` first, then
+`experiments/pseudocode_humaneval_v23.json` for HumanEval only or
+`experiments/pseudocode_full_v23.json` for HumanEval + MBPP. Run from repository root:
 
 ```bash
-python scripts/run_experiments.py --config experiments/pseudocode_smoke_v22.json --stage all
+python scripts/run_experiments.py --config experiments/pseudocode_smoke_v23.json --stage all
 ```
 
 Stages remain prepare, generate, export, evaluate, summarize. Docker executes
