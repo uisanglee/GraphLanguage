@@ -44,6 +44,26 @@ def _call_name(node):
     return None
 
 
+def asserted_entrypoint(source):
+    """Return the called name on the left of one public equality assert.
+
+    Unlike structured example extraction, this does not require literal inputs or
+    outputs. It is used only to recover missing benchmark interface metadata.
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return None
+    if len(tree.body) != 1 or not isinstance(tree.body[0], ast.Assert):
+        return None
+    test = tree.body[0].test
+    if (not isinstance(test, ast.Compare) or len(test.ops) != 1
+            or not isinstance(test.ops[0], ast.Eq) or len(test.comparators) != 1
+            or not isinstance(test.left, ast.Call)):
+        return None
+    return _call_name(test.left.func)
+
+
 def _json_literal(node):
     """Return a JSON-safe literal without evaluating submitted code."""
     try:
@@ -98,7 +118,7 @@ def _assert_example(source, example_id, provenance):
         return None
     return {
         'id': example_id,
-        'call': {'entrypoint': _call_name(test.left.func), 'args': args, 'kwargs': kwargs},
+        'call': {'entrypoint': asserted_entrypoint(source), 'args': args, 'kwargs': kwargs},
         'expected_return': expected,
         'raw_source': source.strip(),
         'provenance': provenance,

@@ -391,6 +391,10 @@ class PipelineTests(unittest.TestCase):
         req = request_for(rec, 'primary', 'Return the length.', 'Plan')
         task = json.loads(req['messages'][-1]['content'])
         self.assertEqual(task['entrypoint'], 'target')
+        complex_case = dict(rec, public_tests=['assert angle_complex(0, 1j) == 1.57'])
+        complex_task = json.loads(request_for(complex_case, 'primary', 'Angle.', 'Plan')
+                                  ['messages'][-1]['content'])
+        self.assertEqual(complex_task['entrypoint'], 'angle_complex')
         with self.assertRaisesRegex(ValueError, 'cannot infer'):
             request_for(dict(rec, public_tests=['assert first([]) == 0',
                                                 'assert second([]) == 0']),

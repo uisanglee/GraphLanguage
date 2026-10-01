@@ -6,7 +6,7 @@ from pathlib import Path
 
 from benchmark_requests import iter_records, safe_task, variants, is_official_evaluation_task
 from public_interface import fixed_interface
-from public_examples import preserved_public_examples
+from public_examples import asserted_entrypoint, preserved_public_examples
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -21,9 +21,9 @@ def request_for(record, variant, text, system):
     task['public_examples'] = preserved_public_examples(record)
     if task['interface_mode'] == 'function' and not task.get('entrypoint'):
         inferred = {
-            example.get('call', {}).get('entrypoint')
-            for example in task['public_examples']
-            if example.get('structured') and example.get('call', {}).get('entrypoint')
+            asserted_entrypoint(source)
+            for source in record.get('public_tests', [])
+            if asserted_entrypoint(source)
         }
         if len(inferred) != 1:
             raise ValueError(record['id'] + ': cannot infer one public entrypoint')
