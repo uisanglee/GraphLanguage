@@ -1,4 +1,4 @@
-# Structured pseudocode → compact AST GraphIR experiment (v21)
+# Structured pseudocode → compact AST GraphIR experiment (v22)
 
 ## Literature and scope of the claim
 
@@ -47,6 +47,12 @@ match. Original annotations are authoritative in the compiled interface. Missing
 annotations in a plan are allowed. If no original signature exists, the planned
 signature is used. stdio plans have `solve(stdin: str) -> str`; the synthesizer
 produces a normal executable stdin/stdout program.
+
+Some normalized MBPP rows have no starter signature or entrypoint field. For those
+rows only, request preparation infers one entrypoint when every structured public
+assert calls the same function; ambiguity is a hard error. Generated Python may be
+returned as one leading fenced block. That single block is extracted for validation
+and evaluation, while trailing prose remains in the raw generation for audit.
 
 Expression-level lambdas are accepted and their parameter scope is analyzed, so
 common forms such as `sorted(items, key=lambda item: item[1])` remain one compact
@@ -143,7 +149,7 @@ availability. The optional baseline uses the same public task/examples and code
 prompt. It has a smaller inference budget, so report tokens and latency as well
 as Pass@1. Graph encoding is longer than pseudocode, not a token-matched treatment.
 
-The default matrix omits the direct Python baseline. `pseudocode_ablation_full_v21.json`
+The default matrix omits the direct Python baseline. `pseudocode_ablation_full_v22.json`
 adds it. All arms use ordinary Python interfaces and one whole-program synthesis;
 this does not measure per-node synthesis, local repair or combinatorial selection.
 No extra NL high-level-plan pass, retrieval, retries, self-repair or test selection
@@ -158,12 +164,12 @@ itself mention examples). The public signature remains fixed in every arm.
 
 ## Run and inspect
 
-Use `experiments/pseudocode_smoke_v21.json` first, then
-`experiments/pseudocode_humaneval_v21.json` for HumanEval only or
-`experiments/pseudocode_full_v21.json` for HumanEval + MBPP. Run from repository root:
+Use `experiments/pseudocode_smoke_v22.json` first, then
+`experiments/pseudocode_humaneval_v22.json` for HumanEval only or
+`experiments/pseudocode_full_v22.json` for HumanEval + MBPP. Run from repository root:
 
 ```bash
-python scripts/run_experiments.py --config experiments/pseudocode_smoke_v21.json --stage all
+python scripts/run_experiments.py --config experiments/pseudocode_smoke_v22.json --stage all
 ```
 
 Stages remain prepare, generate, export, evaluate, summarize. Docker executes

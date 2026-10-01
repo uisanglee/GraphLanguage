@@ -16,6 +16,7 @@ from export_predictions import export_functional
 from inference_journal import JournalClient
 from pseudocode_graphir import compile_pseudocode, validate_graph, artifact_errors
 from pseudocode_graphir import SCHEMA
+from validate_artifact import strip_fence
 from schema_validation import load_schema, validate_schema
 from run_pseudocode_pipeline import generate_one
 from official_results import inference_totals
@@ -383,6 +384,23 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(len(task['public_examples']), 1)
             self.assertNotIn('SECRET', json.dumps(req))
 
+    def test_mbpp_entrypoint_is_inferred_from_consistent_public_asserts(self):
+        rec = {'id': 'mbpp:synthetic', 'benchmark': 'mbpp', 'interface': 'function',
+               'entrypoint': None, 'starter_code': '',
+               'public_tests': ['assert target([1]) == 1', 'assert target([]) == 0']}
+        req = request_for(rec, 'primary', 'Return the length.', 'Plan')
+        task = json.loads(req['messages'][-1]['content'])
+        self.assertEqual(task['entrypoint'], 'target')
+        with self.assertRaisesRegex(ValueError, 'cannot infer'):
+            request_for(dict(rec, public_tests=['assert first([]) == 0',
+                                                'assert second([]) == 0']),
+                        'primary', 'Ambiguous.', 'Plan')
+
+    def test_one_leading_python_fence_is_extracted_before_trailing_prose(self):
+        raw = '```python\ndef total(values):\n    return 0\n```\nExplanation follows.'
+        self.assertEqual(strip_fence(raw), 'def total(values):\n    return 0')
+        self.assertEqual(artifact_errors(raw, dict(TASK, starter_code='def total(values):\n    pass')), [])
+
     def test_valid_and_invalid_results_export_to_sandbox_jobs(self):
         row, _, _ = self.run_arm()
         tasks = {'humaneval:synthetic': {'entrypoint': 'total', 'reference': {'test': 'def check(candidate):\n    assert candidate([2,-1]) == 2'}, 'prompt': {'primary': ''}, 'starter_code': ''}}
@@ -394,7 +412,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(failed['candidate'], '')
 
     def test_experiment_dispatch_has_no_legacy_generation_options(self):
-        config = json.loads((ROOT / 'experiments/pseudocode_smoke_v21.json').read_text())
+        config = json.loads((ROOT / 'experiments/pseudocode_smoke_v22.json').read_text())
         with patch.object(run_experiments, 'run') as run:
             run_experiments.prepare(config, True)
             run_experiments.generate(config, True)

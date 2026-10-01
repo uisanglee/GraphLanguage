@@ -19,6 +19,15 @@ def request_for(record, variant, text, system):
     # metadata object is forwarded to either inference stage.
     task.pop('metadata', None)
     task['public_examples'] = preserved_public_examples(record)
+    if task['interface_mode'] == 'function' and not task.get('entrypoint'):
+        inferred = {
+            example.get('call', {}).get('entrypoint')
+            for example in task['public_examples']
+            if example.get('structured') and example.get('call', {}).get('entrypoint')
+        }
+        if len(inferred) != 1:
+            raise ValueError(record['id'] + ': cannot infer one public entrypoint')
+        task['entrypoint'] = inferred.pop()
     task['fixed_interface'] = fixed_interface(task)
     return {'custom_id': f"{record['id']}:{variant}",
             'messages': [{'role': 'system', 'content': system},

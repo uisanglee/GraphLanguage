@@ -12,6 +12,14 @@ def strip_fence(text: str) -> str:
     value = text.strip()
     lines = value.splitlines()
     if lines and lines[0].startswith("```"):
+        # A single leading code block is the artifact. Models sometimes append
+        # prose after its closing fence despite an output-only instruction.
+        # Extracting that block is deterministic formatting normalization; an
+        # embedded or second block is never combined with executable source.
+        closing = next((i for i, line in enumerate(lines[1:], 1)
+                        if line.strip() == "```"), None)
+        if closing is not None:
+            return "\n".join(lines[1:closing]).strip()
         lines = lines[1:]
     # Some completion models omit the opening fence but still emit a final fence.
     # Removing one fence-only final line is formatting normalization; embedded
