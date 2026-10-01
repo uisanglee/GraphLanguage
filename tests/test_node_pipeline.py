@@ -79,10 +79,62 @@ class NodesTest(unittest.TestCase):
         self.assertNotIn('implementations',request)
         self.assertIn('sum_loop.body',request['region_callbacks'])
 
-    def test_reject_extra_function_and_signature_drift(self):
+    def test_helpers_allowed_but_signature_drift_rejected(self):
         node = self.graph['nodes'][2]
         self.assertTrue(check_node_source('def wrong():\n    pass',node))
-        self.assertTrue(check_node_source(self.implementations()['sum_loop']+'\ndef extra(): pass',node))
+        self.assertEqual(check_node_source(self.implementations()['sum_loop']+'\ndef extra(): pass',node), [])
+
+    def test_module_helpers_imports_are_private_and_preserve_scopes(self):
+        implementations = self.implementations()
+        implementations['sum_loop'] = '''import math
+OFFSET = 0
+def helper(x):
+    return math.floor(x) + OFFSET
+''' + implementations['sum_loop'].replace("total = inputs['initial_total']", "total = helper(inputs['initial_total'])")
+        implementations['add_if_positive'] = f'''from math import pow
+OFFSET = 100
+def helper(x):
+    return pow(max(x, 0), 2)
+def {symbol('add_if_positive')}(inputs, regions):
+    OFFSET = -50
+    return {{'result': inputs['total'] + helper(inputs['item'])}}
+'''
+        namespace = {}
+        exec(compile_graph(self.graph, implementations), namespace)
+        self.assertEqual(namespace['sum_positive_squares']([-2, 3, 4]), 25)
+        self.assertFalse({'helper', 'math', 'pow', 'OFFSET'} & namespace.keys())
+
+    def test_mutual_helpers_and_multiline_constants(self):
+        implementations = self.implementations()
+        implementations['add_if_positive'] = f'''TEXT = """a
+b"""
+def even(n):
+    return n == 0 or odd(n - 1)
+def odd(n):
+    return n != 0 and even(n - 1)
+def {symbol('add_if_positive')}(inputs, regions):
+    assert TEXT == 'a\\nb'
+    assert even(4) and odd(3)
+    return {{'result': inputs['total'] + max(inputs['item'], 0) ** 2}}
+'''
+        namespace = {}
+        exec(compile_graph(self.graph, implementations), namespace)
+        self.assertEqual(namespace['sum_positive_squares']([3, 4]), 25)
+
+    def test_module_gate_preserves_abi_and_rejects_ambiguous_execution(self):
+        node = self.graph['nodes'][3]
+        valid = self.implementations()['add_if_positive']
+        for extra in ('\nprint(1)', '\nvalue = helper()', '\nfrom math import *',
+                      '\nimport math\nmath = 1', '\nfrom __future__ import annotations',
+                      '\ndef helper(x=print(1)): pass', '\n@decorator\ndef helper(): pass',
+                      '\ndef helper():\n    global x\n    x = 1',
+                      '\ndef helper(): return missing', '\nclass Extra: pass'):
+            with self.subTest(extra=extra):
+                self.assertTrue(check_node_source(valid + extra, node))
+        for bad in (valid.replace("'result':", "'wrong':"),
+                    valid.replace("inputs['total']", "inputs['unknown']"),
+                    valid.replace('(inputs, regions)', '(values, regions)')):
+            self.assertTrue(check_node_source('import math\n' + bad, node))
 
     def test_literal_output_keys_must_match_ports(self):
         node = self.graph['nodes'][3]

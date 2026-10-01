@@ -391,6 +391,7 @@ def main() -> None:
                             errors = check_node_source(code, node, executable_graph)
                             node_result = dict(
                                 code=code, errors=errors, inference=inference,
+                                source_format='isolated-node-module-v1',
                                 demonstration_ids=demo_ids,
                                 public_example_context={
                                     'node_io': len(node_payload.get('node_examples', [])),

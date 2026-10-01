@@ -273,24 +273,72 @@ def node_request(graph: dict, node: dict) -> dict:
     return request
 
 
+def _node_declarations(tree, node):
+    """Accept a declarative node module; never evaluate generated expressions.
+
+    The compiler places these declarations in a private closure, so imports and
+    helper names cannot leak into other nodes or the graph runtime.
+    """
+    names = set()
+    for statement in tree.body:
+        bindings = []
+        if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Constant) and isinstance(statement.value.value, str):
+            continue
+        if isinstance(statement, (ast.Import, ast.ImportFrom)):
+            if isinstance(statement, ast.ImportFrom) and (statement.level or statement.module == '__future__'):
+                return None, names, ['relative and __future__ imports are unsupported in node modules']
+            if any(alias.name == '*' for alias in statement.names):
+                return None, names, ['star imports are unsupported in node modules']
+            bindings = [alias.asname or (alias.name.split('.')[0] if isinstance(statement, ast.Import) else alias.name)
+                        for alias in statement.names]
+        elif isinstance(statement, ast.FunctionDef):
+            if statement.decorator_list:
+                return None, names, ['top-level node functions/helpers must not have decorators']
+            # Default expressions run when declarations are initialized. Accept
+            # literal defaults only; calls belong inside the generated function.
+            try:
+                for default in statement.args.defaults + [d for d in statement.args.kw_defaults if d is not None]:
+                    ast.literal_eval(default)
+            except (ValueError, TypeError, SyntaxError):
+                return None, names, ['top-level helper defaults must be literals']
+            bindings = [statement.name]
+        elif isinstance(statement, ast.Assign) and all(isinstance(t, ast.Name) for t in statement.targets):
+            try:
+                ast.literal_eval(statement.value)
+            except (ValueError, TypeError, SyntaxError):
+                return None, names, ['top-level node constants must be literals']
+            bindings = [t.id for t in statement.targets]
+        else:
+            return None, names, ['node module supports only imports, functions and literal constants; no top-level execution']
+        for name in bindings:
+            if name in names:
+                return None, names, [f'duplicate node module binding: {name}']
+            names.add(name)
+    entries = [s for s in tree.body if isinstance(s, ast.FunctionDef) and s.name == symbol(node['id'])]
+    if len(entries) != 1:
+        return None, names, ['node module must define exactly one function with the supplied ABI name']
+    return entries[0], names, []
+
+
 def check_node_source(source: str, node: dict, graph: dict | None = None) -> list[str]:
     try:
         compile(source, "<node>", "exec")
         tree = ast.parse(source)
     except SyntaxError as error:
         return [str(error)]
-    if len(tree.body) != 1 or not isinstance(tree.body[0], ast.FunctionDef):
-        return ["output must contain exactly one function; imports/helpers go inside it"]
-    fn = tree.body[0]
+    fn, module_names, errors = _node_declarations(tree, node)
+    if errors:
+        return errors
     if (fn.name != symbol(node["id"]) or [a.arg for a in fn.args.args] != ["inputs", "regions"]
         or fn.args.posonlyargs or fn.args.kwonlyargs or fn.args.vararg or fn.args.kwarg
         or fn.args.defaults or fn.decorator_list):
         return ["node function must preserve the exact ABI signature"]
-    if any(isinstance(n, (ast.Global, ast.Nonlocal)) for n in ast.walk(fn)):
+    if any(isinstance(n, (ast.Global, ast.Nonlocal)) for n in ast.walk(tree)):
         return ["node functions must not modify compiler/module globals"]
     # Python's symbol table understands closures/comprehensions, unlike a flat AST
-    # name scan. Nodes have no implicit task variables or module-level imports.
-    allowed_globals = set(vars(builtins)) | {fn.name}
+    # name scan. Only explicit node declarations and builtins are available;
+    # task variables and undeclared imports are never guessed.
+    allowed_globals = set(vars(builtins)) | module_names
     def undefined_globals(table):
         missing = {s.get_name() for s in table.get_symbols()
                    if s.is_referenced() and s.is_global() and s.get_name() not in allowed_globals}
@@ -436,7 +484,18 @@ def compile_graph(graph: dict, implementations: dict[str, str]) -> str:
         if key != 'preserved_public_examples'
     }
     source = "from __future__ import annotations\n\n"
-    source += "\n\n".join(f"# graphdsl:{nid}\n{code}" for nid, code in implementations.items())
+    for nid, code in implementations.items():
+        tree = ast.parse(code)
+        if len(tree.body) == 1 and isinstance(tree.body[0], ast.FunctionDef):
+            source += f"# graphdsl:{nid}\n{code}\n\n"
+        else:
+            # Keep entry/helper scopes intact: nesting declarations inside the
+            # entry itself would accidentally capture its inputs/local variables.
+            factory = symbol(nid) + '_module'
+            wrapper = ast.parse(f'def {factory}():\n    pass').body[0]
+            wrapper.body = tree.body + [ast.Return(value=ast.Name(id=symbol(nid), ctx=ast.Load()))]
+            source += f"# graphdsl:{nid}\n" + ast.unparse(ast.fix_missing_locations(wrapper))
+            source += f"\n{symbol(nid)} = {factory}()\ndel {factory}\n\n"
     source += f"\n\n_gd_graph = {runtime_graph!r}\n_gd_orders = {orders!r}\n_gd_incoming = {incoming!r}\n"
     source += "_gd_functions = {" + ",".join(f"{nid!r}: {symbol(nid)}" for nid in implementations) + "}\n"
     source += '\n' + (Path(__file__).parent / 'graphir_types.py').read_text() + '\n'

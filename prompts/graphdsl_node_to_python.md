@@ -1,7 +1,9 @@
-Implement only the supplied node. Output one Python function with the exact supplied signature;
-no Markdown or module-level code. Put imports and helpers inside the function.
+Implement only the supplied node. Output Python with the exact supplied entry function signature;
+no Markdown. Imports and helper functions may be inside the entry or at module level.
+Module-level declarations are private to this node; only imports, functions and literal constants
+are supported. Put computations inside functions; do not include example calls or test code.
 Bind every needed local value from inputs explicitly; port names are not Python variables.
-Import every non-builtin API used, inside this function (including math and itertools).
+Import every non-builtin API used (including math and itertools).
 
 inputs maps input port IDs directly to values: use inputs['port'], not inputs['port']['value']
 unless that port's actual value is a dictionary with that key. input_bindings describes sources,
