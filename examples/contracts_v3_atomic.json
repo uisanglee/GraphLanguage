@@ -1,0 +1,11 @@
+{
+  "contract_version": "3.0",
+  "interface": {
+    "mode": "function",
+    "entrypoint": "separate_paren_groups",
+    "signature": "(paren_string: str) -> list[str]"
+  },
+  "compute": {
+    "description": "Remove spaces, scan paren_string once while tracking nesting depth, start a group at depth zero, append each balanced group when depth returns to zero, preserve group order and return an empty list for empty input."
+  }
+}

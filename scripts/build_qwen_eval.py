@@ -100,7 +100,7 @@ def main() -> None:
     parser.add_argument("--input-dir", type=Path, default=Path("data/normalized"))
     parser.add_argument("--output", type=Path, default=Path("data/qwen/nl_to_graphdsl.jsonl"))
     parser.add_argument('--planner-format', choices=['graph', 'contracts'], default='graph')
-    parser.add_argument('--contract-version', choices=['1', '2'], default='1')
+    parser.add_argument('--contract-version', choices=['1', '2', '3'], default='1')
     parser.add_argument("--system-prompt", type=Path)
     parser.add_argument(
         "--demo-catalog", type=Path
@@ -125,7 +125,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    suffix = '_v2' if args.contract_version == '2' else ''
+    suffix = '_' + 'v' + args.contract_version if args.contract_version in {'2', '3'} else ''
     args.system_prompt = args.system_prompt or Path(f'prompts/nl_to_contracts{suffix}.md' if args.planner_format == 'contracts' else 'prompts/nl_to_graphdsl.md')
     args.demo_catalog = args.demo_catalog or Path(f'demonstrations/contracts_catalog{suffix}.json' if args.planner_format == 'contracts' else 'demonstrations/catalog.json')
 

@@ -1,0 +1,44 @@
+{
+  "name": "qwen7b-contracts-smoke-v17",
+  "output_dir": "outputs/qwen7b-contracts-smoke-v17",
+  "input_dir": "data/normalized",
+  "benchmarks": [
+    "humaneval",
+    "mbpp"
+  ],
+  "official_eval_only": true,
+  "generation": {
+    "base_url": "http://localhost:8000/v1",
+    "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+    "temperature": 0,
+    "limit": 3
+  },
+  "conditions": [
+    {
+      "name": "graphir-contracts-direct-1x1",
+      "kind": "graphdsl",
+      "planner_demonstrations": 1,
+      "code_demonstrations": 1,
+      "synthesis_mode": "nodes",
+      "planner_format": "contracts",
+      "contract_version": "3"
+    },
+    {
+      "name": "graphir-contracts-plan-1x1",
+      "kind": "graphdsl",
+      "planner_demonstrations": 1,
+      "code_demonstrations": 1,
+      "synthesis_mode": "nodes",
+      "planner_format": "contracts",
+      "high_level_plan": true,
+      "contract_version": "3"
+    }
+  ],
+  "evaluation": {
+    "workers": 2,
+    "functional_timeout": 5,
+    "functional_memory_mb": 512,
+    "build_functional_image": true,
+    "run_official": false
+  }
+}

@@ -13,7 +13,7 @@ from schema_validation import load_schema, validate_schema
 from validate_graph import validate
 
 SCHEMA = Path(__file__).resolve().parents[1] / 'schemas/graphir-contracts.schema.json'
-COMPILER_VERSION = 'contracts-5-positional-shared-records'
+COMPILER_VERSION = 'contracts-6-atomic-default'
 
 
 def identifier(name):
@@ -116,6 +116,10 @@ def compile_contracts(document, task=None):
     if authoritative and isinstance(document, dict):
         document = dict(document, interface=authoritative)
     shapes = {}
+    if document.get('contract_version') == '3.0':
+        from graphir_contracts_v3 import lower_contracts_v3
+        params, return_type = signature_info(document['interface'])
+        document = lower_contracts_v3(document, params, return_type)
     if document.get('contract_version') == '2.0':
         from graphir_contracts_v2 import lower_contracts_v2
         document, shapes = lower_contracts_v2(document, signature_info(document['interface'])[0])

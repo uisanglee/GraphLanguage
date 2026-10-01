@@ -1,0 +1,10 @@
+[
+  {
+    "id": "contract-v3-atomic",
+    "interface": "function",
+    "benchmarks": ["humaneval", "mbpp", "bigcodebench", "livecodebench"],
+    "task": "Separate consecutive balanced groups of nested parentheses, ignoring spaces.",
+    "keywords": ["function", "loop", "nested", "string", "atomic"],
+    "graph": "../examples/contracts_v3_atomic.json"
+  }
+]

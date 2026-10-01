@@ -190,7 +190,7 @@ def main() -> None:
     parser.add_argument("--synthesizer-model")
     parser.add_argument('--synthesis-mode', choices=['nodes', 'whole'], default='nodes')
     parser.add_argument('--planner-format', choices=['graph', 'contracts'], default='graph')
-    parser.add_argument('--contract-version', choices=['1', '2'], default='1')
+    parser.add_argument('--contract-version', choices=['1', '2', '3'], default='1')
     parser.add_argument('--node-system-prompt', type=Path, default=Path('prompts/graphdsl_node_to_python.md'))
     parser.add_argument('--max-plan-tokens', type=int, default=2048)
     parser.add_argument('--max-node-tokens', type=int, default=4096)
@@ -230,7 +230,7 @@ def main() -> None:
     parser.add_argument("--limit", type=int)
     parser.add_argument("--no-resume", action="store_true")
     args = parser.parse_args()
-    suffix = '-v2' if args.contract_version == '2' else ''
+    suffix = '-' + 'v' + args.contract_version if args.contract_version in {'2', '3'} else ''
     args.schema = args.schema or Path(f'schemas/graphir-contracts{suffix}.schema.json' if args.planner_format == 'contracts' else 'schemas/graphir-compact.schema.json')
 
     planner_model = args.planner_model or args.model
@@ -263,6 +263,8 @@ def main() -> None:
         if args.contract_version == '2':
             settings['contract_v2_compiler'] = hashlib.sha256(Path(__file__).with_name('graphir_contracts_v2.py').read_bytes()).hexdigest()
             settings['value_contract_runtime'] = hashlib.sha256(Path(__file__).with_name('graphir_types.py').read_bytes()).hexdigest()
+        if args.contract_version == '3':
+            settings['contract_v3_compiler'] = hashlib.sha256(Path(__file__).with_name('graphir_contracts_v3.py').read_bytes()).hexdigest()
         settings['node_compiler'] = hashlib.sha256(Path(__file__).with_name('graphdsl_nodes.py').read_bytes()).hexdigest()
         settings['schema_validator'] = hashlib.sha256(Path(__file__).with_name('schema_validation.py').read_bytes()).hexdigest()
     run_identity(args.output, settings, args.input)

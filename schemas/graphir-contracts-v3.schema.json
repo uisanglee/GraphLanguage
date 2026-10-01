@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GraphIR atomic function contract v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "interface", "compute"],
+  "properties": {
+    "contract_version": {"const": "3.0"},
+    "interface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "entrypoint", "signature"],
+      "properties": {
+        "mode": {"enum": ["function", "stdio"]},
+        "entrypoint": {"type": ["string", "null"]},
+        "signature": {"type": ["string", "null"]}
+      }
+    },
+    "compute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description"],
+      "properties": {
+        "description": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
