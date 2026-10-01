@@ -65,6 +65,7 @@ def prepare(config: dict[str, Any], dry_run: bool) -> None:
                 "--benchmarks", *benchmarks,
                 "--num-demonstrations", str(condition.get("planner_demonstrations", 1)),
                 "--planner-format", condition.get('planner_format', 'graph'),
+                "--contract-version", condition.get('contract_version', '1'),
             ]
             if condition.get('preserve_public_examples', True) is False:
                 command.append('--no-preserve-public-examples')
@@ -99,6 +100,7 @@ def generate(config: dict[str, Any], dry_run: bool) -> None:
                 "--num-code-demonstrations", str(condition.get("code_demonstrations", 1)),
                 "--synthesis-mode", condition.get('synthesis_mode', 'nodes'),
                 "--planner-format", condition.get('planner_format', 'graph'),
+                "--contract-version", condition.get('contract_version', '1'),
             ]
             if condition.get("high_level_plan", False):
                 command.append("--high-level-plan")

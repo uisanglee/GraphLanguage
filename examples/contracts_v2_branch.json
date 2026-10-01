@@ -1,0 +1,42 @@
+{
+  "contract_version": "2.0",
+  "interface": {
+    "mode": "function",
+    "entrypoint": "absolute",
+    "signature": "(x: int) -> int"
+  },
+  "steps": [
+    {
+      "kind": "Compute",
+      "description": "Determine whether x is negative.",
+      "needs": [
+        "input:x"
+      ],
+      "output": "bool"
+    },
+    {
+      "kind": "Branch",
+      "description": "Negate negative x, otherwise return x.",
+      "condition": "step:0",
+      "output": "int",
+      "then": {
+        "steps": [
+          {
+            "kind": "Compute",
+            "description": "Return -x.",
+            "needs": [
+              "input:x"
+            ],
+            "output": "int"
+          }
+        ],
+        "return": "step:1"
+      },
+      "else": {
+        "steps": [],
+        "return": "input:x"
+      }
+    }
+  ],
+  "return": "step:1"
+}

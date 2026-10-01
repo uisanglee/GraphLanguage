@@ -1,0 +1,46 @@
+{
+  "contract_version": "2.0",
+  "interface": {
+    "mode": "function",
+    "entrypoint": "sort_numbers",
+    "signature": "(nums: list[int]) -> list[int]"
+  },
+  "steps": [
+    {
+      "kind": "Compute",
+      "description": "For each nums element produce number, digit_sum of abs(number), original_index in input order.",
+      "needs": [
+        "input:nums"
+      ],
+      "output": {
+        "kind": "list",
+        "items": {
+          "kind": "record",
+          "fields": {
+            "number": {
+              "description": "Original number",
+              "shape": "int"
+            },
+            "digit_sum": {
+              "description": "Sum of absolute decimal digits",
+              "shape": "int"
+            },
+            "original_index": {
+              "description": "Zero-based original position",
+              "shape": "int"
+            }
+          }
+        }
+      }
+    },
+    {
+      "kind": "Compute",
+      "description": "Sort records by digit_sum then original_index and return their number fields.",
+      "needs": [
+        "step:0"
+      ],
+      "output": "list[int]"
+    }
+  ],
+  "return": "step:1"
+}

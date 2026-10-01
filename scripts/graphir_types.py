@@ -65,6 +65,9 @@ def _gd_matches(value, annotation, depth=0):
 
 
 def _gd_assert_ports(node, direction, values):
+    for name, shape in node.get('metadata', {}).get('value_contracts', {}).get(direction, {}).items():
+        if name in values and not _gd_shape_matches(values[name], shape):
+            raise GraphIRPortTypeError(f"{node['id']}.{name} ({direction}): shared value contract violated")
     if not _gd_check_types:
         return
     for port in node[direction]:
@@ -78,3 +81,13 @@ def _gd_assert_ports(node, direction, values):
             raise GraphIRPortTypeError(
                 f"{node['id']}.{port['id']} ({direction}): expected {annotation}; "
                 f"received {type(value).__name__} with incompatible contents")
+
+
+def _gd_shape_matches(value, shape):
+    if isinstance(shape, str):
+        return _gd_matches(value, _gd_annotation(shape))
+    if shape['kind'] == 'list':
+        return isinstance(value, list) and all(_gd_shape_matches(v, shape['items']) for v in value)
+    fields = shape['fields']
+    return (isinstance(value, dict) and set(value) == set(fields)
+            and all(_gd_shape_matches(value[k], field['shape']) for k, field in fields.items()))

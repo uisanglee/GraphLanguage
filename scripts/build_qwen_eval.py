@@ -100,6 +100,7 @@ def main() -> None:
     parser.add_argument("--input-dir", type=Path, default=Path("data/normalized"))
     parser.add_argument("--output", type=Path, default=Path("data/qwen/nl_to_graphdsl.jsonl"))
     parser.add_argument('--planner-format', choices=['graph', 'contracts'], default='graph')
+    parser.add_argument('--contract-version', choices=['1', '2'], default='1')
     parser.add_argument("--system-prompt", type=Path)
     parser.add_argument(
         "--demo-catalog", type=Path
@@ -124,8 +125,9 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    args.system_prompt = args.system_prompt or Path('prompts/nl_to_contracts.md' if args.planner_format == 'contracts' else 'prompts/nl_to_graphdsl.md')
-    args.demo_catalog = args.demo_catalog or Path('demonstrations/contracts_catalog.json' if args.planner_format == 'contracts' else 'demonstrations/catalog.json')
+    suffix = '_v2' if args.contract_version == '2' else ''
+    args.system_prompt = args.system_prompt or Path(f'prompts/nl_to_contracts{suffix}.md' if args.planner_format == 'contracts' else 'prompts/nl_to_graphdsl.md')
+    args.demo_catalog = args.demo_catalog or Path(f'demonstrations/contracts_catalog{suffix}.json' if args.planner_format == 'contracts' else 'demonstrations/catalog.json')
 
     system = args.system_prompt.read_text(encoding="utf-8").strip()
     system_sha256 = hashlib.sha256(system.encode("utf-8")).hexdigest()
@@ -169,6 +171,7 @@ def main() -> None:
                         "demonstration_ids": [item["id"] for item in demonstrations],
                         "planner_prompt_sha256": system_sha256,
                         **({'planner_format': 'contracts'} if args.planner_format == 'contracts' else {}),
+                        **({'contract_version': args.contract_version} if args.planner_format == 'contracts' else {}),
                         **({'preserved_public_example_count': len(public)}
                            if args.planner_format == 'contracts' else {}),
                     },

@@ -1,0 +1,56 @@
+[
+  {
+    "id": "contract-v2-basic",
+    "interface": "function",
+    "benchmarks": [
+      "humaneval",
+      "mbpp",
+      "bigcodebench",
+      "livecodebench"
+    ],
+    "task": "Return the absolute difference between two numbers.",
+    "keywords": [
+      "basic",
+      "list",
+      "sort",
+      "number"
+    ],
+    "graph": "../examples/contracts_v2_basic.json"
+  },
+  {
+    "id": "contract-v2-records",
+    "interface": "function",
+    "benchmarks": [
+      "humaneval",
+      "mbpp",
+      "bigcodebench",
+      "livecodebench"
+    ],
+    "task": "Sort numbers by sum of absolute decimal digits, preserving ties.",
+    "keywords": [
+      "records",
+      "list",
+      "sort",
+      "number"
+    ],
+    "graph": "../examples/contracts_v2_records.json"
+  },
+  {
+    "id": "contract-v2-branch",
+    "interface": "function",
+    "benchmarks": [
+      "humaneval",
+      "mbpp",
+      "bigcodebench",
+      "livecodebench"
+    ],
+    "task": "Return the absolute integer x using two editable paths.",
+    "keywords": [
+      "branch",
+      "list",
+      "sort",
+      "number"
+    ],
+    "graph": "../examples/contracts_v2_branch.json"
+  }
+]

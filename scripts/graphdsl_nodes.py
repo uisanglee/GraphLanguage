@@ -203,6 +203,9 @@ def node_request(graph: dict, node: dict) -> dict:
                          for p in node['inputs']},
         "region_callbacks": region_contracts,
     }
+    contracts = node.get('metadata', {}).get('value_contracts')
+    if contracts:
+        request['value_contracts'] = contracts
     examples = graph.get('examples') or []
     preserved = graph.get('metadata', {}).get('preserved_public_examples', [])
     if not examples and not preserved:

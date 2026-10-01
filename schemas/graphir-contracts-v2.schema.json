@@ -1,0 +1,209 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "interface",
+    "steps",
+    "return"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "2.0"
+    },
+    "interface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "entrypoint",
+        "signature"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "function",
+            "stdio"
+          ]
+        },
+        "entrypoint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "signature": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    },
+    "return": {
+      "$ref": "#/$defs/ref"
+    }
+  },
+  "$defs": {
+    "ref": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^input:[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        {
+          "type": "string",
+          "pattern": "^step:[0-9]+$"
+        }
+      ]
+    },
+    "shape": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "fields"
+          ],
+          "properties": {
+            "kind": {
+              "const": "record"
+            },
+            "fields": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "description",
+                  "shape"
+                ],
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "shape": {
+                    "$ref": "#/$defs/shape"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "items"
+          ],
+          "properties": {
+            "kind": {
+              "const": "list"
+            },
+            "items": {
+              "$ref": "#/$defs/shape"
+            }
+          }
+        }
+      ]
+    },
+    "program": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "steps",
+        "return"
+      ],
+      "properties": {
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        },
+        "return": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "step": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "description",
+            "needs",
+            "output"
+          ],
+          "properties": {
+            "kind": {
+              "const": "Compute"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1
+            },
+            "needs": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ref"
+              }
+            },
+            "output": {
+              "$ref": "#/$defs/shape"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "description",
+            "condition",
+            "output",
+            "then",
+            "else"
+          ],
+          "properties": {
+            "kind": {
+              "const": "Branch"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1
+            },
+            "condition": {
+              "$ref": "#/$defs/ref"
+            },
+            "output": {
+              "$ref": "#/$defs/shape"
+            },
+            "then": {
+              "$ref": "#/$defs/program"
+            },
+            "else": {
+              "$ref": "#/$defs/program"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

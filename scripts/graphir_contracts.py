@@ -13,7 +13,7 @@ from schema_validation import load_schema, validate_schema
 from validate_graph import validate
 
 SCHEMA = Path(__file__).resolve().parents[1] / 'schemas/graphir-contracts.schema.json'
-COMPILER_VERSION = 'contracts-4-livecodebench-public-examples'
+COMPILER_VERSION = 'contracts-5-positional-shared-records'
 
 
 def identifier(name):
@@ -105,6 +105,9 @@ def contract_schema(schema, task):
     if fixed_interface(task):
         schema['required'] = [key for key in schema['required'] if key != 'interface']
         schema['properties'].pop('interface', None)
+        if 'ref' in schema.get('$defs', {}):
+            params = signature_info(fixed_interface(task))[0]
+            schema['$defs']['ref']['anyOf'][0] = {'enum': ['input:' + name for name in params]}
     return schema
 
 
@@ -112,6 +115,10 @@ def compile_contracts(document, task=None):
     authoritative = fixed_interface(task)
     if authoritative and isinstance(document, dict):
         document = dict(document, interface=authoritative)
+    shapes = {}
+    if document.get('contract_version') == '2.0':
+        from graphir_contracts_v2 import lower_contracts_v2
+        document, shapes = lower_contracts_v2(document, signature_info(document['interface'])[0])
     errors = validate_schema(document, load_schema(SCHEMA))
     if errors:
         raise ValueError('; '.join(errors))
@@ -192,6 +199,11 @@ def compile_contracts(document, task=None):
                     node['inputs'][name] = typ
                     edges.append({'from': endpoint, 'to': nid + '.' + name})
             nodes.append(node)
+            if shapes:
+                node['metadata'] = {'value_contracts': {
+                    'inputs': {k: copy.deepcopy(shapes[k]) for k in node['inputs'] if k in shapes},
+                    'outputs': {k: copy.deepcopy(shapes[k]) for k in node['outputs'] if k in shapes},
+                }}
             for name, typ in outputs.items():
                 env[name] = (typ, nid + '.' + name)
                 local.add(name)
