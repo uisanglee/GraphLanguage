@@ -5,7 +5,7 @@
   "additionalProperties": false,
   "required": ["graphir_version", "representation", "interface", "entry_function", "functions", "module_description", "class_descriptions", "notes"],
   "properties": {
-    "graphir_version": {"const": "pseudocode-graphir-3"},
+    "graphir_version": {"const": "pseudocode-graphir-3.1"},
     "representation": {"const": "compact-pseudocode-ast-graph"},
     "interface": {
       "type": "object", "additionalProperties": false,

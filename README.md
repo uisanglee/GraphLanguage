@@ -26,7 +26,7 @@ GPU 서버에서 Qwen을 켜 둔 상태로 smoke 실험:
 
 ```bash
 python scripts/run_experiments.py \
-  --config experiments/pseudocode_smoke_v20.json \
+  --config experiments/pseudocode_smoke_v21.json \
   --stage all
 ```
 
@@ -34,7 +34,7 @@ HumanEval 164개만 전체 평가:
 
 ```bash
 python scripts/run_experiments.py \
-  --config experiments/pseudocode_humaneval_v20.json \
+  --config experiments/pseudocode_humaneval_v21.json \
   --stage all
 ```
 
@@ -42,7 +42,7 @@ HumanEval 164개 + MBPP 공식 test 500개:
 
 ```bash
 python scripts/run_experiments.py \
-  --config experiments/pseudocode_full_v20.json \
+  --config experiments/pseudocode_full_v21.json \
   --stage all
 ```
 
@@ -56,7 +56,7 @@ python scripts/run_experiments.py \
 | source-graphir-1x1 | 원본 명세·공개 예제 + GraphIR |
 
 기본 Qwen→Python 조건은 기본 설정에 없다.
-함께 비교하려면 `experiments/pseudocode_ablation_full_v20.json`을 사용한다.
+함께 비교하려면 `experiments/pseudocode_ablation_full_v21.json`을 사용한다.
 이 baseline도 같은 공개 예제와 일반 Python ABI를 받는다.
 
 각 조건은 계획 후보 1개, 전체 Python 후보 1개를 사용한다. 계획을 함수별로 나눠
@@ -64,7 +64,7 @@ python scripts/run_experiments.py \
 `prepare → generate → export → evaluate → summarize` 순서로 실행된다.
 생성 코드는 호스트에서 실행하지 않고 기존 Docker 평가기에서 테스트한다.
 
-출력은 `outputs/qwen7b-pseudocode-<설정명>-v20/` 아래에 저장된다.
+출력은 `outputs/qwen7b-pseudocode-<설정명>-v21/` 아래에 저장된다.
 
 - `<조건>/results.jsonl`: pseudocode, 컴파일된 GraphIR, Python, 오류와 토큰·시간
 - `<조건>/evaluation/<benchmark>/results.jsonl`: 개별 정답 판정
@@ -90,7 +90,7 @@ python scripts/run_experiments.py \
 
 ```bash
 python -m unittest discover -s tests -v
-python scripts/run_experiments.py --config experiments/pseudocode_smoke_v20.json --stage all --dry-run
+python scripts/run_experiments.py --config experiments/pseudocode_smoke_v21.json --stage all --dry-run
 ```
 
 ## 이전 실험

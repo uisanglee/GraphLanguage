@@ -1,4 +1,4 @@
-# Structured pseudocode → compact AST GraphIR experiment (v20)
+# Structured pseudocode → compact AST GraphIR experiment (v21)
 
 ## Literature and scope of the claim
 
@@ -36,7 +36,7 @@ that parse/compile are retained, except the exclusions below. Helper operations
 can have descriptive names without implementations. This leaves genuinely abstract
 steps for the Python synthesizer; Python syntax does not imply executable Python.
 
-No imports, decorators, async/await, yield, lambda, nested function/class,
+No imports, decorators, async/await, yield, nested function/class,
 global/nonlocal, ellipsis or module-level execution. Each function must contain
 an explicit return. Top-level helper definitions are allowed. A plain class with
 methods can represent an existing class-method interface. Annotation names are
@@ -47,6 +47,14 @@ match. Original annotations are authoritative in the compiled interface. Missing
 annotations in a plan are allowed. If no original signature exists, the planned
 signature is used. stdio plans have `solve(stdin: str) -> str`; the synthesizer
 produces a normal executable stdin/stdout program.
+
+Expression-level lambdas are accepted and their parameter scope is analyzed, so
+common forms such as `sorted(items, key=lambda item: item[1])` remain one compact
+Call/Assign expression rather than becoming separate functions. If a model copies
+public examples as trailing module-level `assert` statements, the parser recognizes
+them as non-plan checks and deterministically excludes them from GraphIR without
+executing them. Other module-level execution remains invalid; function definitions
+must precede such checks. Function-internal asserts remain `Assert` nodes.
 
 Original example (not from an evaluation task):
 
@@ -72,7 +80,7 @@ python scripts/pseudocode_graphir.py --pseudocode examples/archive_labels.pseudo
 
 ## Static GraphIR representation
 
-Profile identifier: `pseudocode-graphir-3`. GraphIR is the deterministic compact
+Profile identifier: `pseudocode-graphir-3.1`. GraphIR is the deterministic compact
 graph projection of the parsed pseudocode AST, not a second authored language and
 not the legacy Core 0.2 eager dataflow executor. Existing Core/ABI code does not
 consume this graph. `pseudocode_graphir.validate_graph` validates its connections.
@@ -135,7 +143,7 @@ availability. The optional baseline uses the same public task/examples and code
 prompt. It has a smaller inference budget, so report tokens and latency as well
 as Pass@1. Graph encoding is longer than pseudocode, not a token-matched treatment.
 
-The default matrix omits the direct Python baseline. `pseudocode_ablation_full_v20.json`
+The default matrix omits the direct Python baseline. `pseudocode_ablation_full_v21.json`
 adds it. All arms use ordinary Python interfaces and one whole-program synthesis;
 this does not measure per-node synthesis, local repair or combinatorial selection.
 No extra NL high-level-plan pass, retrieval, retries, self-repair or test selection
@@ -150,12 +158,12 @@ itself mention examples). The public signature remains fixed in every arm.
 
 ## Run and inspect
 
-Use `experiments/pseudocode_smoke_v20.json` first, then
-`experiments/pseudocode_humaneval_v20.json` for HumanEval only or
-`experiments/pseudocode_full_v20.json` for HumanEval + MBPP. Run from repository root:
+Use `experiments/pseudocode_smoke_v21.json` first, then
+`experiments/pseudocode_humaneval_v21.json` for HumanEval only or
+`experiments/pseudocode_full_v21.json` for HumanEval + MBPP. Run from repository root:
 
 ```bash
-python scripts/run_experiments.py --config experiments/pseudocode_smoke_v20.json --stage all
+python scripts/run_experiments.py --config experiments/pseudocode_smoke_v21.json --stage all
 ```
 
 Stages remain prepare, generate, export, evaluate, summarize. Docker executes

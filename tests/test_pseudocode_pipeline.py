@@ -114,6 +114,31 @@ class CompilerTests(unittest.TestCase):
                      if node['kind'] == 'Resource']
         self.assertNotIn('x', resources)
 
+    def test_lambda_parameters_are_local_expression_bindings(self):
+        plan = '''def total(values):
+    ordered = sorted(values, key=lambda item: item[1])
+    return ordered
+'''
+        graph = compile_pseudocode(plan, dict(TASK, starter_code='def total(values):\n    pass'))
+        call = next(node for node in graph['functions'][0]['body']['nodes'] if node['kind'] == 'Call')
+        self.assertEqual(call['config']['value'], 'sorted(values, key=lambda item: item[1])')
+        self.assertEqual(set(call['inputs']), {'values'})
+
+    def test_trailing_module_asserts_are_separated_without_execution(self):
+        plan = '''def total(values):
+    return len(values)
+
+assert total([]) == 0
+assert total([1, 2]) == 2
+'''
+        graph = compile_pseudocode(plan, dict(TASK, starter_code='def total(values):\n    pass'))
+        self.assertEqual(len(graph['functions']), 1)
+        self.assertFalse(any(node['kind'] == 'Assert'
+                             for node in all_nodes(graph['functions'][0]['body'])))
+        with self.assertRaisesRegex(ValueError, 'must follow'):
+            compile_pseudocode('assert True\ndef total(values):\n    return 0',
+                               dict(TASK, starter_code='def total(values):\n    pass'))
+
     def test_recursion_repeated_calls_and_higher_order_refs(self):
         plan = '''def helper(x):
     return helper(x - 1) if x > 0 else 0
@@ -369,7 +394,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(failed['candidate'], '')
 
     def test_experiment_dispatch_has_no_legacy_generation_options(self):
-        config = json.loads((ROOT / 'experiments/pseudocode_smoke_v20.json').read_text())
+        config = json.loads((ROOT / 'experiments/pseudocode_smoke_v21.json').read_text())
         with patch.object(run_experiments, 'run') as run:
             run_experiments.prepare(config, True)
             run_experiments.generate(config, True)

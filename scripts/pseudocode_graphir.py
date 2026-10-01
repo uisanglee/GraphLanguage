@@ -16,7 +16,7 @@ from public_interface import fixed_interface
 from schema_validation import load_schema, validate_schema
 from validate_artifact import strip_fence
 
-VERSION = 'pseudocode-graphir-3'
+VERSION = 'pseudocode-graphir-3.1'
 SCHEMA = Path(__file__).resolve().parents[1] / 'schemas/pseudocode-graphir-v3.schema.json'
 NODE_KINDS = {'Input', 'Resource', 'Assign', 'Update', 'Call', 'Loop', 'Branch',
               'Assert', 'Return', 'Control'}
@@ -35,8 +35,16 @@ def _docstring_statement(node):
 
 def definitions(tree):
     result, names = {}, set()
+    saw_module_check = False
     for item in tree.body:
+        if isinstance(item, ast.Assert):
+            if not result:
+                raise ValueError('module-level plan checks must follow function definitions')
+            saw_module_check = True
+            continue
         if isinstance(item, (ast.FunctionDef, ast.ClassDef)):
+            if saw_module_check:
+                raise ValueError('function definitions must precede module-level plan checks')
             if item.name in names:
                 raise ValueError('duplicate top-level definition: ' + item.name)
             names.add(item.name)
@@ -107,6 +115,21 @@ class _Reads(ast.NodeVisitor):
             self.visit(arg)
         for keyword in node.keywords:
             self.visit(keyword.value)
+
+    def visit_Lambda(self, node):
+        # Defaults are evaluated outside the lambda scope; its parameters bind
+        # names only inside the body.
+        for default in list(node.args.defaults) + list(node.args.kw_defaults):
+            if default is not None:
+                self.visit(default)
+        bound = {arg.arg for arg in (node.args.posonlyargs + node.args.args + node.args.kwonlyargs)}
+        if node.args.vararg:
+            bound.add(node.args.vararg.arg)
+        if node.args.kwarg:
+            bound.add(node.args.kwarg.arg)
+        self.bound.append(bound)
+        self.visit(node.body)
+        self.bound.pop()
 
     def _comprehension(self, generators, values):
         self.bound.append(set())
@@ -412,7 +435,7 @@ class _BodyCompiler:
 
 def _validate_profile(funcs):
     unsupported = (ast.AsyncFunctionDef, ast.AsyncFor, ast.Await, ast.Yield, ast.YieldFrom,
-                   ast.Import, ast.ImportFrom, ast.Global, ast.Nonlocal, ast.Lambda,
+                   ast.Import, ast.ImportFrom, ast.Global, ast.Nonlocal,
                    ast.Try, ast.With, ast.Match)
     for fn in funcs.values():
         if fn.decorator_list:
