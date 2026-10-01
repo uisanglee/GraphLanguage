@@ -33,6 +33,25 @@ def wilson(successes: int, total: int) -> tuple[float, float]:
     return center - margin, center + margin
 
 
+def structural_node_counts(graph: dict[str, Any] | None) -> dict[str, int]:
+    counts: dict[str, int] = defaultdict(int)
+    def body(value):
+        for node in value.get('nodes', []):
+            counts[node.get('kind', 'Unknown')] += 1
+            if node.get('kind') == 'Loop' and isinstance(node.get('body'), dict):
+                body(node['body'])
+            if node.get('kind') == 'Loop' and isinstance(node.get('else_body'), dict):
+                body(node['else_body'])
+            for branch in node.get('branches', []):
+                if isinstance(branch.get('body'), dict):
+                    body(branch['body'])
+    if isinstance(graph, dict):
+        for function in graph.get('functions', []):
+            if isinstance(function.get('body'), dict):
+                body(function['body'])
+    return counts
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--experiment-dir", type=Path, required=True)
@@ -53,6 +72,9 @@ def main() -> None:
         for benchmark, results in sorted(grouped.items()):
             total = len(results)
             graph_rows = [row for row in results if "graph_raw" in row]
+            pseudocode_rows = [row for row in results if row.get('compiler_version', '').startswith('pseudocode-graphir-')]
+            if pseudocode_rows:
+                graph_rows = pseudocode_rows
             parsel_rows = [row for row in results if "parsel_raw" in row]
             evaluation_path = condition_dir / args.evaluation_subdir / benchmark / "results.jsonl"
             evaluations = list(iter_jsonl(evaluation_path))
@@ -67,6 +89,7 @@ def main() -> None:
             infra_errors = sum(r.get('status') in {'container_error','runner_error','invalid_worker_output','container_timeout'} for r in evaluations)
             complete = complete and not infra_errors
             totals = [inference_totals(r) for r in results]
+            node_counts = [structural_node_counts(r.get('graph')) for r in pseudocode_rows]
             passed = sum(bool(row.get("passed")) for row in evaluations)
             lower, upper = wilson(passed, len(evaluations))
             public_checked = [r['example_valid'] for r in evaluations if isinstance(r.get('example_valid'), bool)]
@@ -75,6 +98,39 @@ def main() -> None:
                 "condition": condition_dir.name,
                 "benchmark": benchmark,
                 "generated": total,
+                "generation_errors": sum(bool(row.get('pipeline_error') or row.get('generation_error')) for row in results),
+                "pseudocode_valid_rate": (
+                    sum(row.get('pseudocode_valid') is True for row in pseudocode_rows) / len(pseudocode_rows)
+                    if pseudocode_rows else ''
+                ),
+                "mean_graph_nodes": (
+                    sum(sum(counts.values()) for counts in node_counts) / len(node_counts)
+                    if node_counts else ''
+                ),
+                "mean_compute_nodes": (
+                    sum(counts.get('Compute', 0) for counts in node_counts) / len(node_counts)
+                    if node_counts else ''
+                ),
+                "mean_assign_nodes": (
+                    sum(counts.get('Assign', 0) for counts in node_counts) / len(node_counts)
+                    if node_counts else ''
+                ),
+                "mean_update_nodes": (
+                    sum(counts.get('Update', 0) for counts in node_counts) / len(node_counts)
+                    if node_counts else ''
+                ),
+                "mean_call_nodes": (
+                    sum(counts.get('Call', 0) for counts in node_counts) / len(node_counts)
+                    if node_counts else ''
+                ),
+                "mean_loop_nodes": (
+                    sum(counts.get('Loop', 0) for counts in node_counts) / len(node_counts)
+                    if node_counts else ''
+                ),
+                "mean_branch_nodes": (
+                    sum(counts.get('Branch', 0) for counts in node_counts) / len(node_counts)
+                    if node_counts else ''
+                ),
                 "contract_parse_rate": (
                     sum(isinstance(row.get('contracts'), dict) for row in results) / total
                     if any('contract_raw' in row for row in results) else ''

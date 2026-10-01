@@ -9,7 +9,7 @@ import os
 import hashlib
 from pathlib import Path
 
-from run_qwen_pipeline import Client, completed_ids, iter_jsonl, selected_requests
+from llm_client import Client, completed_ids, iter_jsonl, selected_requests
 from validate_artifact import validate_artifact
 from inference_journal import JournalClient, run_identity
 

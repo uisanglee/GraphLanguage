@@ -1,6 +1,6 @@
 # GraphIR Core node synthesis and original Parsel (1×1)
 
-The current matrix is experiments/parsel_graphdsl_1x1.json. Its output directory is
+The current matrix is experiments/legacy/parsel_graphdsl_1x1.json. Its output directory is
 outputs/qwen7b-parsel-graphir-core-v7; do not mix it with results from older language versions.
 
 ## What runs
@@ -92,15 +92,15 @@ Run from the repository root on the Linux GPU host. Use a Qwen vLLM server suppo
 docker build -f sandbox/Dockerfile.parsel -t graphdsl-parsel:0.1 .
 docker build -f sandbox/Dockerfile.functional -t graphdsl-functional-eval:0.1 sandbox
 
-python3 scripts/run_experiments.py --config experiments/parsel_graphdsl_1x1.json --stage prepare
-python3 scripts/run_experiments.py --config experiments/parsel_graphdsl_1x1.json --stage generate
-python3 scripts/run_experiments.py --config experiments/parsel_graphdsl_1x1.json --stage export
-python3 scripts/run_experiments.py --config experiments/parsel_graphdsl_1x1.json --stage evaluate
-python3 scripts/run_experiments.py --config experiments/parsel_graphdsl_1x1.json --stage summarize
+python3 scripts/run_experiments.py --config experiments/legacy/parsel_graphdsl_1x1.json --stage prepare
+python3 scripts/run_experiments.py --config experiments/legacy/parsel_graphdsl_1x1.json --stage generate
+python3 scripts/run_experiments.py --config experiments/legacy/parsel_graphdsl_1x1.json --stage export
+python3 scripts/run_experiments.py --config experiments/legacy/parsel_graphdsl_1x1.json --stage evaluate
+python3 scripts/run_experiments.py --config experiments/legacy/parsel_graphdsl_1x1.json --stage summarize
 ```
 
 Build/install BigCodeBench and LiveCodeBench evaluator images as described in EVALUATION.md.
-For a small end-to-end run use experiments/parsel_graphdsl_smoke.json (HumanEval/MBPP, 3 each).
+For a small end-to-end run use experiments/legacy/parsel_graphdsl_smoke.json (HumanEval/MBPP, 3 each).
 The original Parsel process may execute generated constraints and kill spawned workers; it is
 therefore always run inside a separate networkless container. Only temporary RPC files are mounted,
 not the project, credentials or Docker socket.

@@ -23,8 +23,8 @@ accepted source format; do not present a rerun as a compiler-only ablation.
 Fresh GraphIR-only configurations run direct then plan, each on HumanEval and MBPP:
 
 ```sh
-python scripts/run_experiments.py --config experiments/graphir_abi_smoke_v15.json --stage all
-python scripts/run_experiments.py --config experiments/graphir_abi_full_v15.json --stage all
+python scripts/run_experiments.py --config experiments/legacy/graphir_abi_smoke_v15.json --stage all
+python scripts/run_experiments.py --config experiments/legacy/graphir_abi_full_v15.json --stage all
 ```
 
 Outputs use separate `outputs/qwen7b-contracts-{smoke,full}-v15` directories. Existing

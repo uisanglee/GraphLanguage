@@ -16,8 +16,8 @@ used. Representative method and stdio contracts, exact node-example routing, and
 covered by local tests.
 
 ```sh
-python scripts/run_experiments.py --config experiments/graphir_livecodebench_smoke_v14.json --stage all
-python scripts/run_experiments.py --config experiments/graphir_livecodebench_full_v14.json --stage all
+python scripts/run_experiments.py --config experiments/legacy/graphir_livecodebench_smoke_v14.json --stage all
+python scripts/run_experiments.py --config experiments/legacy/graphir_livecodebench_full_v14.json --stage all
 ```
 
 These configurations compare direct Python with GraphIR Direct/Plan and use the existing official
@@ -50,14 +50,14 @@ set `"preserve_public_examples": false` on a GraphIR condition; request preparat
 Use fresh v13 outputs:
 
 ```sh
-python scripts/run_experiments.py --config experiments/parsel_graphdsl_smoke_v13.json --stage all
-python scripts/run_experiments.py --config experiments/parsel_graphdsl_humaneval_v13.json --stage all
+python scripts/run_experiments.py --config experiments/legacy/parsel_graphdsl_smoke_v13.json --stage all
+python scripts/run_experiments.py --config experiments/legacy/parsel_graphdsl_humaneval_v13.json --stage all
 ```
 
 The focused smoke ablation compares contract-only against preserved-example synthesis:
 
 ```sh
-python scripts/run_experiments.py --config experiments/graphir_examples_ablation_smoke_v13.json --stage all
+python scripts/run_experiments.py --config experiments/legacy/graphir_examples_ablation_smoke_v13.json --stage all
 ```
 
 ## Evaluation fixes and contract guards (v11)
@@ -70,7 +70,7 @@ the closing Python quotes. Reference solutions are never used as setup or genera
 Reevaluate existing v10 candidates **without any LLM calls**, preserving the original files:
 
 ```sh
-python scripts/run_experiments.py --config experiments/parsel_graphdsl_humaneval_v10.json --stage reevaluate --evaluation-subdir evaluation-v11
+python scripts/run_experiments.py --config experiments/legacy/parsel_graphdsl_humaneval_v10.json --stage reevaluate --evaluation-subdir evaluation-v11
 ```
 
 This exports fresh jobs, rebuilds the Docker worker, evaluates all four configured conditions,
@@ -79,7 +79,7 @@ jobs/results live in `evaluation-v11/humaneval/`. An existing destination is ref
 interruption use the individual `export`, `evaluate`, `summarize` stages with the same subdir,
 as appropriate. Reevaluation does not reclassify old generation gates using new validators.
 
-For **new generation**, use `experiments/parsel_graphdsl_smoke_v12.json`,
+For **new generation**, use `experiments/legacy/parsel_graphdsl_smoke_v12.json`,
 `parsel_graphdsl_humaneval_v12.json`, or `parsel_graphdsl_full_v12.json`. These use fresh output
 directories and build the updated functional image. HumanEval-only still excludes direct Python.
 The superseded v11 generation configs are retained only for provenance: their constrained schema
@@ -122,12 +122,12 @@ prefixes, default parameters, request examples and end-to-end mock generation. L
 accuracy must be measured again.
 
 ```sh
-python scripts/run_experiments.py --config experiments/parsel_graphdsl_humaneval_v10.json --stage all
+python scripts/run_experiments.py --config experiments/legacy/parsel_graphdsl_humaneval_v10.json --stage all
 ```
 
 The rest of this document describes the underlying contract format and v9 introduction.
 
-Use `experiments/parsel_graphdsl_smoke_v9.json` and `parsel_graphdsl_full_v9.json` for the
+Use `experiments/legacy/parsel_graphdsl_smoke_v9.json` and `parsel_graphdsl_full_v9.json` for the
 new `planner_format: contracts` condition. Existing v8 configurations keep explicit graph
 generation so a running experiment is not silently changed. Both Direct and Plan use the
 same compiler, schema and contract demonstration catalog. Parsel and direct-Python are unchanged.
@@ -182,8 +182,8 @@ identity; changed compilers cannot silently resume an old run.
 Run from the project root with Qwen and Docker available:
 
 ```sh
-python scripts/run_experiments.py --config experiments/parsel_graphdsl_smoke_v9.json --stage all
-python scripts/run_experiments.py --config experiments/parsel_graphdsl_full_v9.json --stage all
+python scripts/run_experiments.py --config experiments/legacy/parsel_graphdsl_smoke_v9.json --stage all
+python scripts/run_experiments.py --config experiments/legacy/parsel_graphdsl_full_v9.json --stage all
 ```
 
 Outputs go to `outputs/qwen7b-contracts-smoke-v9` and `outputs/qwen7b-contracts-full-v9`.

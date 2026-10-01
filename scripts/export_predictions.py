@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any, Iterator
 
-from build_qwen_eval import is_official_evaluation_task
+from benchmark_requests import is_official_evaluation_task
 from validate_artifact import strip_fence
 from public_examples import public_checks, humaneval_setup
 
@@ -82,7 +82,7 @@ def export_functional(
             "generation_valid": generation_valid,
             "public_examples": public_checks(task, benchmark),
             "graphir_type_diagnostics": result.get('synthesis_mode') == 'nodes',
-            "generation_errors": result.get("artifact_errors") or [
+            "generation_errors": result.get("artifact_errors") or result.get('pseudocode_errors') or [
                 result.get("pipeline_error") or result.get("generation_error") or
                 result.get("synthesis_error") or "no valid generated artifact"
             ],
@@ -126,7 +126,7 @@ def main() -> None:
         with args.output.open("w", encoding="utf-8") as output:
             for task_id, result in sorted(results.items()):
                 task = tasks[task_id]
-                code = strip_fence(result.get("generated_artifact", ""))
+                code = strip_fence(result.get("generated_artifact", "")) if result.get('artifact_valid') is True else ''
                 row = {
                     "task_id": task["metadata"]["task_id"],
                     "solution": code,
@@ -137,7 +137,7 @@ def main() -> None:
         rows = [
             {
                 "question_id": tasks[task_id]["metadata"]["question_id"],
-                "code_list": [strip_fence(result.get("generated_artifact", ""))],
+                "code_list": [strip_fence(result.get("generated_artifact", "")) if result.get('artifact_valid') is True else ''],
             }
             for task_id, result in sorted(results.items())
         ]

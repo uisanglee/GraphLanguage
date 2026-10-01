@@ -1,0 +1,8 @@
+def archive_labels(labels: list[str]) -> list[str]:
+    """Keep nonempty labels in input order and normalize each for archiving."""
+    result = []
+    for label in labels:
+        if label:
+            # Strip surrounding space and normalize letter case for archive keys.
+            result.append(normalize_archive_key(label))
+    return result

@@ -23,7 +23,7 @@ The smoke configuration now writes to `outputs/qwen7b-node-smoke-v8`; do not reu
 plans, journals or results. Run from the project root:
 
 ```sh
-python scripts/run_experiments.py --config experiments/parsel_graphdsl_smoke.json --stage all
+python scripts/run_experiments.py --config experiments/legacy/parsel_graphdsl_smoke.json --stage all
 ```
 
 This changes prompts, generation schema, and demonstrations together; an improvement cannot

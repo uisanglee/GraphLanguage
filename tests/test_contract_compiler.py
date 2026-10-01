@@ -345,7 +345,7 @@ class ContractCompiler(unittest.TestCase):
             self.assertEqual(ns['absolute_distance'](2., 7.), 5.)
 
     def test_experiment_passes_contract_format_to_both_stages(self):
-        config = json.loads((ROOT/'experiments/parsel_graphdsl_smoke_v9.json').read_text())
+        config = json.loads((ROOT/'experiments/legacy/parsel_graphdsl_smoke_v9.json').read_text())
         commands = []
         with patch.object(run_experiments, 'run', side_effect=lambda command, dry: commands.append(command)):
             run_experiments.prepare(config, True)

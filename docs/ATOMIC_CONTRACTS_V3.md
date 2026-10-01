@@ -36,8 +36,8 @@ isolated helper/import support, static checks and Docker evaluation are unchange
 Fresh 1x1 runs:
 
 ```sh
-python scripts/run_experiments.py --config experiments/graphir_atomic_smoke_v17.json --stage all
-python scripts/run_experiments.py --config experiments/graphir_atomic_full_v17.json --stage all
+python scripts/run_experiments.py --config experiments/legacy/graphir_atomic_smoke_v17.json --stage all
+python scripts/run_experiments.py --config experiments/legacy/graphir_atomic_full_v17.json --stage all
 ```
 
 Both configurations run GraphIR Direct followed by GraphIR Plan on HumanEval and

@@ -3,7 +3,7 @@
 Generated code is untrusted. No script in this repository executes it directly on the host.
 
 For the current node-wise GraphIR Core versus unchanged upstream Parsel experiment, use
-`experiments/parsel_graphdsl_1x1.json` and `PARSEL_GRAPHDSL_1X1.md`. Parsel synthesis itself also runs
+`experiments/legacy/parsel_graphdsl_1x1.json` and `PARSEL_GRAPHDSL_1X1.md`. Parsel synthesis itself also runs
 in Docker because its original SCC solver executes constraints. The older matrix below describes
 the legacy whole-artifact GraphDSL ablations, not the current Core node-wise comparison.
 The runner now rejects silently disabled official evaluation. `--limit` selects a fixed prefix per
@@ -11,7 +11,7 @@ benchmark; use the HumanEval/MBPP smoke matrix for a short complete evaluation.
 
 ## Experiment matrix
 
-`experiments/matrix.example.json` defines the initial paper matrix:
+`experiments/legacy/matrix.example.json` defines the initial paper matrix:
 
 | condition | GraphIR | retrieval | constrained decoding | validation gate |
 |---|---:|---:|---:|---|

@@ -11,6 +11,8 @@ class JournalClient:
         self.directory = directory
         directory.mkdir(parents=True, exist_ok=True)
         self.events = []
+        self.cache_hits = 0
+        self.requests_sent = 0
 
     def complete(self, messages, max_tokens, temperature, schema=None, constraint_mode="none", **kwargs):
         payload = dict(model=self.client.model, messages=messages, max_tokens=max_tokens,
@@ -22,10 +24,12 @@ class JournalClient:
             if cached['status'] != 'completed':
                 raise RuntimeError(f"unresolved inference {path}; no automatic resampling")
             self.events.append(cached['inference'])
+            self.cache_hits += 1
             return cached['text'], cached['inference']
         # Write ahead. A crash after sending a request requires explicit reconciliation.
         with path.open('x') as stream:
             json.dump({'status': 'pending', 'payload_sha256': key}, stream)
+        self.requests_sent += 1
         text, inference = self.client.complete(messages, max_tokens, temperature,
             schema=schema, constraint_mode=constraint_mode, attempts=1)
         temp = path.with_suffix('.tmp')

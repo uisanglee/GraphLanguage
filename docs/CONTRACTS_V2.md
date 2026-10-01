@@ -48,8 +48,8 @@ The v16 prompt, schema and three new demonstrations change together, so report t
 as a new generation configuration, not an isolated compiler ablation.
 
 ```sh
-python scripts/run_experiments.py --config experiments/graphir_contracts_smoke_v16.json --stage all
-python scripts/run_experiments.py --config experiments/graphir_contracts_full_v16.json --stage all
+python scripts/run_experiments.py --config experiments/legacy/graphir_contracts_smoke_v16.json --stage all
+python scripts/run_experiments.py --config experiments/legacy/graphir_contracts_full_v16.json --stage all
 ```
 
 Both run GraphIR Direct then GraphIR Plan on HumanEval and MBPP with fresh v16

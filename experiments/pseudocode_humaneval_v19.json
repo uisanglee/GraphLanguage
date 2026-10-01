@@ -1,0 +1,43 @@
+{
+  "name": "qwen7b-pseudocode-humaneval-v19",
+  "output_dir": "outputs/qwen7b-pseudocode-humaneval-v19",
+  "input_dir": "data/normalized",
+  "benchmarks": [
+    "humaneval"
+  ],
+  "official_eval_only": true,
+  "generation": {
+    "base_url": "http://localhost:8000/v1",
+    "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+    "temperature": 0,
+    "max_plan_tokens": 4096,
+    "max_code_tokens": 8192
+  },
+  "conditions": [
+    {
+      "name": "source-pseudocode-1x1",
+      "kind": "pseudocode",
+      "representation": "pseudocode",
+      "source_context": "original"
+    },
+    {
+      "name": "graphir-only-1x1",
+      "kind": "pseudocode",
+      "representation": "graphir",
+      "source_context": "none"
+    },
+    {
+      "name": "source-graphir-1x1",
+      "kind": "pseudocode",
+      "representation": "graphir",
+      "source_context": "original"
+    }
+  ],
+  "evaluation": {
+    "workers": 2,
+    "functional_timeout": 5,
+    "functional_memory_mb": 512,
+    "build_functional_image": true,
+    "run_official": false
+  }
+}

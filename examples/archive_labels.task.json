@@ -1,0 +1,6 @@
+{
+  "interface_mode": "function",
+  "entrypoint": "archive_labels",
+  "starter_code": "def archive_labels(labels: list[str]) -> list[str]:\n    pass",
+  "task": "In input order, process every label that was nonempty before normalization. Strip its surrounding whitespace, convert it to lowercase and return the resulting list. Preserve duplicates. A whitespace-only original label contributes an empty normalized string."
+}

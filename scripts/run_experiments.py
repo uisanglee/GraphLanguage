@@ -45,7 +45,13 @@ def prepare(config: dict[str, Any], dry_run: bool) -> None:
         benchmarks = condition.get("benchmarks", config["benchmarks"])
         condition_dir = output_dir / condition["name"]
         requests = condition_dir / "requests.jsonl"
-        if condition["kind"] == "direct":
+        if condition["kind"] == "pseudocode":
+            command = [
+                sys.executable, str(ROOT / "scripts" / "build_pseudocode_eval.py"),
+                "--input-dir", str(input_dir), "--output", str(requests),
+                "--benchmarks", *benchmarks,
+            ]
+        elif condition["kind"] == "direct":
             command = [
                 sys.executable, str(ROOT / "scripts" / "build_direct_eval.py"),
                 "--input-dir", str(input_dir), "--output", str(requests),
@@ -58,7 +64,7 @@ def prepare(config: dict[str, Any], dry_run: bool) -> None:
                 "--benchmarks", *benchmarks,
                 "--num-demonstrations", str(condition.get("parsel_demonstrations", 1)),
             ]
-        else:
+        elif condition["kind"] == "graphdsl":
             command = [
                 sys.executable, str(ROOT / "scripts" / "build_qwen_eval.py"),
                 "--input-dir", str(input_dir), "--output", str(requests),
@@ -69,6 +75,8 @@ def prepare(config: dict[str, Any], dry_run: bool) -> None:
             ]
             if condition.get('preserve_public_examples', True) is False:
                 command.append('--no-preserve-public-examples')
+        else:
+            raise ValueError(f"unknown condition kind: {condition['kind']}")
         if config.get("official_eval_only", True):
             command.append("--official-eval-only")
         run(command, dry_run)
@@ -86,13 +94,20 @@ def generate(config: dict[str, Any], dry_run: bool) -> None:
     for condition in config["conditions"]:
         condition_dir = output_dir / condition["name"]
         base = ["--input", str(condition_dir / "requests.jsonl"), "--output", str(condition_dir / "results.jsonl")]
-        if condition["kind"] == "direct":
+        if condition["kind"] == "pseudocode":
+            command = [sys.executable, str(ROOT / "scripts" / "run_pseudocode_pipeline.py"), *base,
+                '--representation', condition.get('representation', 'graphir'),
+                '--source-context', condition.get('source_context', 'original'),
+                '--plans-dir', str(output_dir / 'shared-pseudocode'),
+                '--max-plan-tokens', str(config['generation'].get('max_plan_tokens', 4096)),
+                '--max-code-tokens', str(config['generation'].get('max_code_tokens', 8192))]
+        elif condition["kind"] == "direct":
             command = [sys.executable, str(ROOT / "scripts" / "run_direct_generation.py"), *base]
         elif condition["kind"] == "parsel":
             command = [sys.executable, str(ROOT / "scripts" / "run_parsel_pipeline.py"), *base]
             if condition.get("high_level_plan", False):
                 command.append("--high-level-plan")
-        else:
+        elif condition["kind"] == "graphdsl":
             command = [
                 sys.executable, str(ROOT / "scripts" / "run_qwen_pipeline.py"), *base,
                 "--constraint-mode", condition.get("constraint_mode", "response_format"),
@@ -104,8 +119,10 @@ def generate(config: dict[str, Any], dry_run: bool) -> None:
             ]
             if condition.get("high_level_plan", False):
                 command.append("--high-level-plan")
+        else:
+            raise ValueError(f"unknown condition kind: {condition['kind']}")
         command += common_generation(config, condition)
-        if condition.get('high_level_plan'):
+        if condition.get('high_level_plan') and condition['kind'] != 'pseudocode':
             command += ['--plans-dir',str(output_dir / 'shared-plans'),
                         '--max-plan-tokens',str(config['generation'].get('max_plan_tokens',2048))]
         run(command, dry_run)

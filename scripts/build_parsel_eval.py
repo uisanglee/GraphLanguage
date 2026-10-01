@@ -8,7 +8,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from build_qwen_eval import is_official_evaluation_task, iter_records, safe_task, variants
+from benchmark_requests import is_official_evaluation_task, iter_records, safe_task, variants
 
 
 SUPPORTED = {"humaneval", "mbpp", "bigcodebench", "livecodebench"}

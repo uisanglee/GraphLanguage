@@ -51,5 +51,5 @@ python3 scripts/run_qwen_pipeline.py --input data/qwen/nl_to_graphdsl.jsonl \
 python3 -m unittest discover -s tests -v
 ```
 
-For the common comparison prefer experiments/parsel_graphdsl_smoke.json, whose input set excludes
+For the common comparison prefer experiments/legacy/parsel_graphdsl_smoke.json, whose input set excludes
 repository patches. --limit is per benchmark, not additional tasks on every resumed run.

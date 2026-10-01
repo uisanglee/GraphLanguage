@@ -6,7 +6,7 @@ only use ``prompt`` and public task metadata, never ``reference`` or hidden test
 """
 
 from __future__ import annotations
-from build_qwen_eval import normalize_interface
+from benchmark_requests import normalize_interface
 
 import argparse
 import gzip
