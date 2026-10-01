@@ -18,7 +18,7 @@ from pseudocode_graphir import compile_pseudocode, validate_graph, artifact_erro
 from pseudocode_graphir import SCHEMA
 from validate_artifact import strip_fence
 from schema_validation import load_schema, validate_schema
-from run_pseudocode_pipeline import generate_one
+from run_pseudocode_pipeline import generate_one, compiler_feedback
 from official_results import inference_totals
 from summarize_experiment import structural_node_counts
 import run_experiments
@@ -72,6 +72,18 @@ class FakeClient:
         self.calls.append(messages)
         return self.text, {'usage': {'total_tokens': 10}, 'elapsed_seconds': 1,
                            'finish_reason': self.finish_reason}
+
+
+class SequenceClient(FakeClient):
+    def __init__(self, responses):
+        super().__init__()
+        self.responses = list(responses)
+
+    def complete(self, messages, max_tokens, temperature, **kwargs):
+        self.calls.append(messages)
+        text, finish_reason = self.responses.pop(0)
+        return text, {'usage': {'total_tokens': 10}, 'elapsed_seconds': 1,
+                      'finish_reason': finish_reason}
 
 
 class CompilerTests(unittest.TestCase):
@@ -315,14 +327,15 @@ def total(values: list[int]) -> int:
 
 class PipelineTests(unittest.TestCase):
     def run_arm(self, representation='graphir', source_context='original', planner=None,
-                example_context=None, req=None):
+                example_context=None, req=None, max_plan_repairs=0):
         planner = planner or FakeClient()
         coder = FakeClient()
         if example_context is None:
             example_context = 'public' if source_context == 'original' else 'none'
         row = generate_one(req or request(), planner, coder, representation=representation,
                            source_context=source_context, example_context=example_context,
-                           system=SYSTEM)
+                           system=SYSTEM, repair_system='Repair the plan.',
+                           max_plan_repairs=max_plan_repairs)
         return row, planner, coder
 
     def test_public_source_is_preserved_and_hidden_fields_excluded(self):
@@ -368,6 +381,45 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(len(planner.calls), 1)
             self.assertEqual(len(coder.calls), 0)
             self.assertTrue(row['pseudocode_errors'])
+
+    def test_compiler_feedback_repair_recovers_once_and_preserves_audit_trail(self):
+        planner = SequenceClient([('def total(other):\n    return 0', 'stop'),
+                                  (PLAN, 'stop')])
+        row, planner, coder = self.run_arm(planner=planner, max_plan_repairs=2)
+        self.assertTrue(row['artifact_valid'])
+        self.assertFalse(row['initial_pseudocode_valid'])
+        self.assertTrue(row['pseudocode_repaired'])
+        self.assertEqual(row['pseudocode_repair_attempts'], 1)
+        self.assertEqual(row['llm_calls'], 3)
+        self.assertEqual(len(row['pseudocode_attempts']), 2)
+        feedback = row['pseudocode_attempts'][0]['compiler_feedback'][0]
+        self.assertEqual(feedback['code'], 'SIGNATURE_MISMATCH')
+        repair_payload = json.loads(planner.calls[1][-1]['content'])
+        self.assertEqual(repair_payload['compiler_feedback'][0]['code'], 'SIGNATURE_MISMATCH')
+        self.assertEqual(repair_payload['source_specification']['entrypoint'], 'total')
+        self.assertNotIn('HIDDEN_SECRET', json.dumps(planner.calls))
+        self.assertEqual(inference_totals(row), (30, 3))
+
+    def test_compiler_feedback_repair_stops_at_budget(self):
+        planner = SequenceClient([('not valid code', 'stop')] * 3)
+        row, planner, coder = self.run_arm(planner=planner, max_plan_repairs=2)
+        self.assertFalse(row['artifact_valid'])
+        self.assertFalse(row['pseudocode_valid'])
+        self.assertEqual(row['pseudocode_repair_attempts'], 2)
+        self.assertEqual(row['llm_calls'], 3)
+        self.assertEqual(len(planner.calls), 3)
+        self.assertEqual(len(coder.calls), 0)
+        self.assertEqual(row['pseudocode_attempts'][-1]['compiler_feedback'][0]['code'],
+                         'SYNTAX_ERROR')
+
+    def test_syntax_feedback_contains_location(self):
+        try:
+            compile('def broken(:\n    pass', '<pseudocode>', 'exec')
+        except SyntaxError as error:
+            feedback = compiler_feedback(error)
+        self.assertEqual(feedback['code'], 'SYNTAX_ERROR')
+        self.assertEqual(feedback['line'], 1)
+        self.assertIn('source_line', feedback)
 
     def test_shared_journal_does_not_call_model_twice(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -453,6 +505,8 @@ class PipelineTests(unittest.TestCase):
         for command in commands:
             self.assertNotIn('--constraint-mode', command)
             self.assertNotIn('--contract-version', command)
+            if 'run_pseudocode_pipeline.py' in command[1]:
+                self.assertIn('--max-plan-repairs', command)
 
     def test_cli_resume_shared_plan_and_identity(self):
         with tempfile.TemporaryDirectory() as tmp:

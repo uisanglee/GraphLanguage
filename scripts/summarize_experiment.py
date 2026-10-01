@@ -103,6 +103,25 @@ def main() -> None:
                     sum(row.get('pseudocode_valid') is True for row in pseudocode_rows) / len(pseudocode_rows)
                     if pseudocode_rows else ''
                 ),
+                "initial_pseudocode_valid_rate": (
+                    sum(row.get('initial_pseudocode_valid', row.get('pseudocode_valid')) is True
+                        for row in pseudocode_rows) / len(pseudocode_rows)
+                    if pseudocode_rows else ''
+                ),
+                "pseudocode_repair_trigger_rate": (
+                    sum(int(row.get('pseudocode_repair_attempts', 0)) > 0 for row in pseudocode_rows) / len(pseudocode_rows)
+                    if pseudocode_rows else ''
+                ),
+                "pseudocode_repair_success_rate": (
+                    sum(row.get('pseudocode_repaired') is True for row in pseudocode_rows
+                        if int(row.get('pseudocode_repair_attempts', 0)) > 0) /
+                    sum(int(row.get('pseudocode_repair_attempts', 0)) > 0 for row in pseudocode_rows)
+                    if any(int(row.get('pseudocode_repair_attempts', 0)) > 0 for row in pseudocode_rows) else ''
+                ),
+                "mean_pseudocode_repair_attempts": (
+                    sum(int(row.get('pseudocode_repair_attempts', 0)) for row in pseudocode_rows) / len(pseudocode_rows)
+                    if pseudocode_rows else ''
+                ),
                 "mean_graph_nodes": (
                     sum(sum(counts.values()) for counts in node_counts) / len(node_counts)
                     if node_counts else ''

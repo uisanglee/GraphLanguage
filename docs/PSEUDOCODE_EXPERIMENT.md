@@ -1,4 +1,4 @@
-# Structured pseudocode → compact AST GraphIR experiment (v23)
+# Structured pseudocode → compact AST GraphIR experiment (v24)
 
 ## Literature and scope of the claim
 
@@ -136,27 +136,46 @@ program equivalence. Invalid plans stop before synthesis and count as failures.
 
 | Condition | Second-stage input | Logical generations |
 | --- | --- | --- |
-| source-pseudocode-examples-1x1 | original public task + pseudocode + public-example sidecar | 1 plan + 1 program |
-| graphir-only-1x1 | GraphIR + public interface | 1 plan + 1 program |
-| graphir-examples-1x1 | GraphIR + public interface + public-example sidecar | 1 plan + 1 program |
-| source-graphir-examples-1x1 | original public task + GraphIR + public-example sidecar | 1 plan + 1 program |
+| source-pseudocode-examples-repair-1x1 | original public task + repaired pseudocode + public-example sidecar | 1 final plan + 1 program |
+| graphir-only-repair-1x1 | repaired GraphIR + public interface | 1 final plan + 1 program |
+| graphir-examples-repair-1x1 | repaired GraphIR + public interface + public-example sidecar | 1 final plan + 1 program |
+| source-graphir-examples-repair-1x1 | original public task + repaired GraphIR + public-example sidecar | 1 final plan + 1 program |
 | source-python-examples-1x1 (optional) | original public task + public-example sidecar | 1 program |
 
-Every planned arm shares the same raw plan via a content-addressed inference
-journal. Even the pseudocode arm goes through the same parser gate to hold planner
+Every planned arm shares the same initial and repaired plans via a content-addressed
+inference journal. Even the pseudocode arm goes through the same parser gate to hold planner
 failures constant. Compare graphir-only vs graphir-examples to isolate the
-second-stage example effect, and source-pseudocode-examples vs
-source-graphir-examples to isolate the representation effect. Compare the two
+second-stage example effect, and source-pseudocode-examples-repair vs
+source-graphir-examples-repair to isolate the representation effect. Compare the two
 example-bearing graph arms to isolate original-context availability. The optional baseline uses the same public task/examples and code
 prompt. It has a smaller inference budget, so report tokens and latency as well
 as Pass@1. Graph encoding is longer than pseudocode, not a token-matched treatment.
 
-The default matrix omits the direct Python baseline. `pseudocode_ablation_full_v23.json`
+The default matrix omits the direct Python baseline. `pseudocode_ablation_full_v24.json`
 adds it. All arms use ordinary Python interfaces and one whole-program synthesis;
 this does not measure per-node synthesis, local repair or combinatorial selection.
-No extra NL high-level-plan pass, retrieval, retries, self-repair or test selection
-is used. No JSON constrained decoding is needed because the model emits pseudocode;
+No extra NL high-level-plan pass, retrieval, test execution or candidate selection
+is used. The only retry is the bounded compiler-feedback repair below. No JSON constrained decoding is needed because the model emits pseudocode;
 Python parsing is a post-generation gate, not grammar-constrained decoding.
+
+### Conditional compiler-feedback repair
+
+Version 24 enables at most two plan repairs. A valid initial plan incurs no extra
+call. On failure, the deterministic compiler returns a stable error code and
+message; Python syntax failures also include line, column and source line. The
+repair prompt receives only the public source specification, previous plan and
+this external feedback. It must return one complete revised plan. Each revision
+is compiled again and repair stops at the first valid GraphIR. There is no plan
+execution, hidden-test access, candidate ranking or semantic correctness claim.
+
+All raw attempts and compiler feedback are retained in `pseudocode_attempts`.
+`initial_pseudocode_valid`, `pseudocode_repaired`, and
+`pseudocode_repair_attempts` distinguish initial quality from recovered plans.
+The summary reports initial/final validity, trigger rate, repair success rate and
+mean repair calls. Since repaired conditions use a larger conditional inference
+budget than v23, tokens, latency and calls must be reported with Pass@1. Repair
+requests use the same content-addressed journal as the initial plan, so all four
+representation/context arms share identical repairs for a task.
 
 Source context contains the verbatim original task, starter code, entrypoint and
 fixed signature. Its structured `public_examples` field is removed; an original
@@ -173,12 +192,12 @@ second-stage effect. The public signature remains fixed in every arm.
 
 ## Run and inspect
 
-Use `experiments/pseudocode_smoke_v23.json` first, then
-`experiments/pseudocode_humaneval_v23.json` for HumanEval only or
-`experiments/pseudocode_full_v23.json` for HumanEval + MBPP. Run from repository root:
+Use `experiments/pseudocode_smoke_v24.json` first, then
+`experiments/pseudocode_humaneval_v24.json` for HumanEval only or
+`experiments/pseudocode_full_v24.json` for HumanEval + MBPP. Run from repository root:
 
 ```bash
-python scripts/run_experiments.py --config experiments/pseudocode_smoke_v23.json --stage all
+python scripts/run_experiments.py --config experiments/pseudocode_smoke_v24.json --stage all
 ```
 
 Stages remain prepare, generate, export, evaluate, summarize. Docker executes

@@ -103,6 +103,7 @@ def generate(config: dict[str, Any], dry_run: bool) -> None:
                     'public' if condition.get('source_context', 'original') == 'original' else 'none'),
                 '--plans-dir', str(output_dir / 'shared-pseudocode'),
                 '--max-plan-tokens', str(config['generation'].get('max_plan_tokens', 4096)),
+                '--max-plan-repairs', str(config['generation'].get('max_plan_repairs', 0)),
                 '--max-code-tokens', str(config['generation'].get('max_code_tokens', 8192))]
         elif condition["kind"] == "direct":
             command = [sys.executable, str(ROOT / "scripts" / "run_direct_generation.py"), *base]

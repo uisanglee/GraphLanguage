@@ -26,7 +26,7 @@ GPU 서버에서 Qwen을 켜 둔 상태로 smoke 실험:
 
 ```bash
 python scripts/run_experiments.py \
-  --config experiments/pseudocode_smoke_v23.json \
+  --config experiments/pseudocode_smoke_v24.json \
   --stage all
 ```
 
@@ -34,7 +34,7 @@ HumanEval 164개만 전체 평가:
 
 ```bash
 python scripts/run_experiments.py \
-  --config experiments/pseudocode_humaneval_v23.json \
+  --config experiments/pseudocode_humaneval_v24.json \
   --stage all
 ```
 
@@ -42,7 +42,7 @@ HumanEval 164개 + MBPP 공식 test 500개:
 
 ```bash
 python scripts/run_experiments.py \
-  --config experiments/pseudocode_full_v23.json \
+  --config experiments/pseudocode_full_v24.json \
   --stage all
 ```
 
@@ -51,27 +51,33 @@ python scripts/run_experiments.py \
 
 | 조건 | Python 생성기 입력 |
 | --- | --- |
-| source-pseudocode-examples-1x1 | 원본 명세 + pseudocode + 별도 공개 예제 sidecar |
-| graphir-only-1x1 | GraphIR + 공개 함수 인터페이스 |
-| graphir-examples-1x1 | GraphIR + 공개 함수 인터페이스 + 별도 공개 예제 sidecar |
-| source-graphir-examples-1x1 | 원본 명세 + GraphIR + 별도 공개 예제 sidecar |
+| source-pseudocode-examples-repair-1x1 | 원본 명세 + repaired pseudocode + 공개 예제 sidecar |
+| graphir-only-repair-1x1 | repaired GraphIR + 공개 함수 인터페이스 |
+| graphir-examples-repair-1x1 | repaired GraphIR + 공개 함수 인터페이스 + 공개 예제 sidecar |
+| source-graphir-examples-repair-1x1 | 원본 명세 + repaired GraphIR + 공개 예제 sidecar |
 
 기본 Qwen→Python 조건은 기본 설정에 없다.
-함께 비교하려면 `experiments/pseudocode_ablation_full_v23.json`을 사용한다.
+함께 비교하려면 `experiments/pseudocode_ablation_full_v24.json`을 사용한다.
 이 baseline도 같은 공개 예제와 일반 Python ABI를 받는다.
 
 구조화된 공개 예제는 GraphIR 객체나 `source_specification.public_examples`에 저장하지
 않는다. 최종 Python 생성 요청의 최상위 `public_examples` sidecar로만 전달되며, 없는
 경우 필드 자체를 생략한다. 원본 명세 조건에서는 원문 안의 doctest를 그대로 보존한다.
-따라서 `graphir-only-1x1`과 `graphir-examples-1x1`의 GraphIR은 완전히 동일하고, 두
+따라서 `graphir-only-repair-1x1`과 `graphir-examples-repair-1x1`의 GraphIR은 완전히 동일하고, 두
 조건의 차이는 두 번째 단계에 구조화된 공개 예제를 제공했는지뿐이다.
 
-각 조건은 계획 후보 1개, 전체 Python 후보 1개를 사용한다. 계획을 함수별로 나눠
-여러 Python 후보를 탐색하지 않는다. 구문 실패는 실패로 기록하고 재생성하지 않는다.
+v24는 최초 pseudocode가 정적 컴파일에 실패할 때만 최대 두 번 repair한다. Qwen에
+막연한 자기비평을 요구하지 않고 오류 코드, 메시지, 구문 위치와 원본 공개 명세를
+제공한다. 수정본은 매번 다시 AST/GraphIR 컴파일되며, 성공 즉시 repair를 멈춘다.
+초안과 모든 수정본·피드백은 `pseudocode_attempts`에 보존된다. 동일 문제의 repair
+호출도 네 조건이 공유한다. repair 없는 v23 설정은 비교 기준으로 그대로 남아 있다.
+
+각 조건은 최종 계획 1개, 전체 Python 후보 1개를 사용한다. 계획을 함수별로 나눠
+여러 Python 후보를 탐색하지 않는다. 구문 실패는 최대 두 번 수정한 뒤에도 남으면 실패로 기록한다.
 `prepare → generate → export → evaluate → summarize` 순서로 실행된다.
 생성 코드는 호스트에서 실행하지 않고 기존 Docker 평가기에서 테스트한다.
 
-출력은 `outputs/qwen7b-pseudocode-<설정명>-v23/` 아래에 저장된다.
+출력은 `outputs/qwen7b-pseudocode-<설정명>-v24/` 아래에 저장된다.
 
 - `<조건>/results.jsonl`: pseudocode, 컴파일된 GraphIR, Python, 오류와 토큰·시간
 - `<조건>/evaluation/<benchmark>/results.jsonl`: 개별 정답 판정
@@ -82,8 +88,8 @@ python scripts/run_experiments.py \
 
 - `scripts/pseudocode_graphir.py`: 실행 없는 parser/compiler 및 검증
 - `scripts/build_pseudocode_eval.py`: 공개 입력만으로 요청 구성
-- `scripts/run_pseudocode_pipeline.py`: 계획 1회 + 코드 1회 및 resume
-- `prompts/nl_to_pseudocode.md`, `prompts/pseudocode_to_python.md`: 두 단계 prompt
+- `scripts/run_pseudocode_pipeline.py`: 계획 + 조건부 compiler repair + 코드 및 resume
+- `prompts/nl_to_pseudocode.md`, `prompts/repair_pseudocode.md`, `prompts/pseudocode_to_python.md`: 단계별 prompt
 - `scripts/run_experiments.py`: 데이터 준비부터 평가까지 실행
 - `scripts/benchmark_requests.py`, `scripts/llm_client.py`,
   `scripts/public_interface.py`: 생성 방식에 독립적인 공통 기능
@@ -97,7 +103,7 @@ python scripts/run_experiments.py \
 
 ```bash
 python -m unittest discover -s tests -v
-python scripts/run_experiments.py --config experiments/pseudocode_smoke_v23.json --stage all --dry-run
+python scripts/run_experiments.py --config experiments/pseudocode_smoke_v24.json --stage all --dry-run
 ```
 
 ## 이전 실험
